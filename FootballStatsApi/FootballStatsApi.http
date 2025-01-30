@@ -1,0 +1,6 @@
+@FootballStatsApi_HostAddress = http://localhost:5026
+
+GET {{FootballStatsApi_HostAddress}}/coupon/
+Accept: application/json
+
+###

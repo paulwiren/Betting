@@ -1,0 +1,311 @@
+﻿@using BettingEngine.Models
+
+<div class="row">
+    <div class="col-md-10"><span class="font-weight-bold">@Match.Home.Name</span></div>
+    <div class="col-md-2 label-header">Tot</div>
+</div>
+
+<div class="row">
+    <div class="col-md-2 label-header">
+        Sammanlagt
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Take(5))
+            {
+                <div class="col-md-12">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Stats.TotSum</div>
+        </div>
+
+    </div>
+   
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">Skott</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Take(5))
+            {
+                <div class="col-md-2">
+                   @latest.ShotsTotal
+                </div>
+            }
+
+            <div class="col-md-2">@Match.Home.Matches.Take(5).Sum(x => x.ShotsTotal)</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsOnTarget
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Matches.Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>
+    </div>
+</div>
+
+@* Home matches *@
+<div class="row">
+    <div class="col-md-2 label-header">Hemma</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Stats.HomeSum</div>
+        </div>
+
+    </div>
+    
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">
+        Skott
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsTotal
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsTotal)</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsOnTarget
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>
+    </div>
+</div>
+
+@* Away matches *@
+<div class="row">
+    <div class="col-md-2">
+        <span class="label-header">Borta</span>
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach(var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2">        
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Stats.AwaySum</div>
+        </div>                            
+    </div>
+    
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">Skott</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach(var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2 shot-col">        
+                    @latest.ShotsTotal
+                </div>
+            }
+            <div class="col-md-2">@Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsTotal)</div>
+
+        </div>                                
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach(var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2">        
+                    @latest.ShotsOnTarget
+                </div>
+            }
+
+            <div class="col-md-2">@Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>                                
+    </div>                       
+</div>           
+
+<div class="row"><hr></div>
+@* Away team *@
+
+<div class="row">
+    <div class="col-md-10"><span class="font-weight-bold">@Match.Away.Name</span></div>
+    <div class="col-md-2 label-header">Tot</div>
+</div>
+
+<div class="row">
+    <div class="col-md-2 label-header">
+        Sammanlagt
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Take(5))
+            {
+                <div class="col-md-2">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Stats.TotSum</div>
+        </div>
+
+    </div>
+
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">Skott</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsTotal
+                </div>
+            }
+
+            <div class="col-md-2">@Match.Away.Matches.Take(5).Sum(x => x.ShotsTotal)</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsOnTarget
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Matches.Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>
+    </div>
+</div>
+
+@* Home matches *@
+<div class="row">
+    <div class="col-md-2 label-header">Hemma</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Stats.HomeSum</div>
+        </div>
+
+    </div>
+
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">
+        Skott
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsTotal
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsTotal)</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsOnTarget
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>
+    </div>
+</div>
+
+@* Away matches *@
+<div class="row">
+    <div class="col-md-2">
+        <span class="label-header">Borta</span>
+    </div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Stats.AwaySum</div>
+        </div>
+    </div>
+
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">Skott</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2 shot-col">
+                    @latest.ShotsTotal
+                </div>
+            }
+            <div class="col-md-2">@Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsTotal)</div>
+
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-2 text-center label-second">På mål</div>
+    <div class="col-md-10">
+        <div class="row">
+            @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+            {
+                <div class="col-md-2">
+                    @latest.ShotsOnTarget
+                </div>
+            }
+
+            <div class="col-md-2">@Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsOnTarget)</div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public GameHistory Match { get; set; }
+
+}

@@ -1,0 +1,132 @@
+﻿@page "/all/stryktipset"
+@page "/all/stryktipset/stats"
+@page "/all/stryktipset/stats/{id:int}"
+@namespace LiveScoreBlazorApp.Shared
+@using BettingEngine.Services
+@using BettingEngine.Models
+@using Microsoft.Extensions.Caching.Memory
+@inject IBettingService BettingService
+@inject ICouponService CouponService
+@inject ISportRadarService SportService
+@inject IFotMobService FotMobService
+@inject IMemoryCache MemoryCache
+@inject NavigationManager Navigation
+
+<div class="row tipsen-coupon-margin">
+<div class="col-md-6">
+    @if (Board != null && Board.Coupons.Any())
+    {
+        @foreach (var coupon in Board.Coupons)
+        {
+            <div class="row">
+                <div class="col-md-8 text-right">@coupon.GameStop.ToShortDateString() @coupon.GameStop.ToShortTimeString()</div>
+            </div>
+            var n = 0;
+            @foreach (var m in coupon.Games)
+            {
+                n++;               
+                <div class="coupon-row-container">
+                    <a class="row" @onclick="() => SelectedMatch(m)">
+                        <span class="badge badge-stryktipset badge-standard coupon-row-number f-500">@n</span>
+                        <div class="col-md-6">
+                            <div class="coupon-row-description-primary">
+                                <span class="coupon-row-description-name home-participant">@m.Home.Name</span>
+                                    <span class="participant-split"> - </span>
+                                <span class="coupon-row-description-name away-participant">@m.Away.Name</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 coupon-bet-buttons">
+                            <span class="btn-bet-label">1</span>
+                            <span class="btn-bet-label">X</span>
+                            <span class="btn-bet-label">2</span>
+                        </div>
+                    </a>
+                </div>                 
+            }
+            <div class="row"><hr></div>
+        }
+    }
+</div>
+<div class="pg_sticky_div__statistics col-md-5">
+    @if (selectedMatch != null)
+    {
+        <MatchStatitics Match="@selectedMatch"/>
+    }
+</div>
+</div>
+
+@code
+{
+    [Parameter] public int Id { get; set; }
+
+    async Task SelectedMatch(GameHistory m)
+    {
+        Id = m.Id;
+        string key = $"{Key}-{m.Id}";
+
+        selectedMatch = MemoryCache.Get<GameHistory>(key);
+
+        if (selectedMatch == null)
+        {
+            // Get stat for the match
+            await FotMobService.GetStats(m);
+
+            MemoryCache.Set<GameHistory>(key, m, new TimeSpan(1, 0, 0));
+
+            selectedMatch = m;
+        }      
+
+        Navigation.NavigateTo($"/stryktipset/stats/{m.Id}");
+    }
+    GameHistory selectedMatch;
+
+    private IEnumerable<GameHistory> Coupon = Array.Empty<GameHistory>();
+    private string Key = "stryktipset";
+
+    private BettingBoard Board = new BettingBoard();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if(Id<=0)
+        {
+            Id = 1;
+        }
+
+        Board = MemoryCache.Get<BettingBoard>(Key);
+        if (Board == null)
+        {
+            string htmlCoupon = await CouponService.GetCouponAsync(Key);
+            Board = await SportService.GetCouponAsync(htmlCoupon);
+
+            //Board.Coupons = await FotMobService.GetFotMobMatches(Board.Coupons);
+            var firstGameStop = Board.Coupons.First().GameStop.AddHours(1) - DateTime.Now;
+            MemoryCache.Set<BettingBoard>(Key, Board, firstGameStop);
+        }
+        int counter = 1;
+        // Evaluate matches
+        GameHistory toBeSelected = null;
+        foreach(var c in Board.Coupons)
+        {            
+            foreach(var g in c.Games)
+            {
+                if(counter == Id)
+                {
+                    toBeSelected = g;
+                }
+                g.Id = counter++;
+                g.Home.Stats.TotSum = g.Home.Matches.Take(5).Sum(z => z.Score.Points);
+                g.Home.Stats.HomeSum = g.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(z => z.Score.Points);
+                g.Home.Stats.AwaySum = g.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(z => z.Score.Points);
+
+                g.Away.Stats.TotSum = g.Away.Matches.Take(5).Sum(z => z.Score.Points);                
+                g.Away.Stats.HomeSum = g.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(z => z.Score.Points);
+                g.Away.Stats.AwaySum = g.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(z => z.Score.Points);
+            }
+        }
+
+         await SelectedMatch(toBeSelected);
+    }
+}

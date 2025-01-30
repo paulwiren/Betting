@@ -1,0 +1,44 @@
+﻿@inject NavigationManager Navigation
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">BettingHelper</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column">
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="stryktipset/">
+                <span class="oi badge-stryktipset"/>Stryktipset
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="europatipset">
+                <span class="oi badge-europatipset"/>Europatipset
+            </NavLink>
+        </li>
+        <li class="nav-item px-3">
+            <NavLink class="nav-link" href="topptipset/" Match="NavLinkMatch.All">
+                <span class="oi badge-topptipset" aria-hidden="true"/>Topptipset
+            </NavLink>
+        </li>       
+    </ul>
+</div>
+
+@code {
+    bool collapseNavMenu = true;
+
+    string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    // void HandleClick()
+    // {
+    //     NavigationManager.NavigateTo("list/stryktipset", true);
+    // }
+}

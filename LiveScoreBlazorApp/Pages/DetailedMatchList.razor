@@ -1,0 +1,102 @@
+﻿@page "/"
+@page "/{bettingType}"
+@using BettingEngine.Models
+@namespace LiveScoreBlazorApp.Shared
+@using BettingEngine.Services
+@using LiveScoreBlazorApp.Shared
+@using BettingEngine.Models
+@using Microsoft.Extensions.Caching.Memory
+@inject IBettingService BettingService
+@inject ICouponService CouponService
+@inject ISportRadarService SportService
+@inject IFotMobService FotMobService
+@inject IMemoryCache MemoryCache
+
+ @if (Board != null && Board.Coupons.Any())
+ {    
+    @foreach (var c in Board.Coupons)
+    {      
+        <div class="row font-weight-bold" >@c.GameStop.ToString("yyyy-MM-dd HH:mm:ss")</div>
+        @foreach (var match in c.Games)
+        {   
+             <div class="table-responsive">
+                <Mobile Match="@match" BettingType="@BettingType"/>
+            </div>
+        }
+    }
+ }
+@code {
+
+    private BettingBoard Board { get; set; }
+
+    [Parameter]
+    public string BettingType { get; set; }
+
+    private async Task LoadBoard()
+    {
+        if (string.IsNullOrEmpty(BettingType))
+        {
+            BettingType = "europatipset";
+        }
+
+        Board = MemoryCache.Get<BettingBoard>(BettingType);
+        if (Board == null)
+        {
+            int numberOfMatches = 13;
+            string htmlCoupon = await CouponService.GetCouponAsync(BettingType);
+            if (BettingType.Equals("topptipset"))
+            {
+                numberOfMatches = 8;
+            }
+            Board = await SportService.GetCouponAsync(htmlCoupon, numberOfMatches);
+
+            int counter = 1;
+            TimeSpan span = TimeSpan.MinValue;
+            string cacheKey = string.Empty;
+            @foreach (var c in Board.Coupons)
+            {
+                if (span.Equals(TimeSpan.MinValue))
+                {
+                    span = c.GameStop.AddHours(1) - DateTime.Now;
+                }
+                @foreach (var match in c.Games)
+                {
+                    match.Id = counter++;
+                    cacheKey = $"{BettingType}-{match.Id}";
+
+                    var currentMatch = MemoryCache.Get<GameHistory>(cacheKey);
+                    if (currentMatch == null)
+                    {
+                        // Get stat for the match
+                        await FotMobService.GetStats(match);
+
+                        match.Home.Stats.TotSum = match.Home.Matches.Take(5).Sum(z => z.Score.Points);
+                        match.Home.Stats.HomeSum = match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(z => z.Score.Points);
+                        match.Home.Stats.AwaySum = match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(z => z.Score.Points);
+
+                        match.Away.Stats.TotSum = match.Away.Matches.Take(5).Sum(z => z.Score.Points);
+                        match.Away.Stats.HomeSum = match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(z => z.Score.Points);
+                        match.Away.Stats.AwaySum = match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(z => z.Score.Points);
+
+
+                        MemoryCache.Set<GameHistory>(cacheKey, match, span);
+                    }
+                }
+            }
+            MemoryCache.Set<BettingBoard>(BettingType, Board, span);
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        await LoadBoard();
+
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        // This event will fire when the parameters change
+        // Put your code here.  
+        await LoadBoard();
+    }
+}

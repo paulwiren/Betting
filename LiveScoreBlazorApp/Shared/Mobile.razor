@@ -1,0 +1,247 @@
+﻿@using BettingEngine.Models
+
+<table class="table">
+    <thead>
+      <tr>
+        <th colspan="7" scope="col">
+                <span class="badge badge-@BettingType badge-standard">@Match.Id</span>
+                <span class="home-participant">@Match.Home.Name</span>
+                <span class="participant-split"> - </span>
+                <span class="away-participant">@Match.Away.Name</span>
+            </th>        
+      </tr>
+    </thead>
+    <tr>
+        <td colspan="6"><span class="font-weight-bold">@Match.Home.Name @Match.Home.TableRow.Pos</span></td>
+        <td>Tot</td>
+    </tr>
+    <tr>
+        <td class="label-header">Senaste</td>
+        @foreach (var latest in Match.Home.Matches.Take(5))
+        {
+            <td class="min-width">
+                <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+            </td>
+        }
+        <td>@Match.Home.Stats.TotSum</td>
+   </tr>
+   <tr>
+        <td class="text-center label-second">Skott</td>
+        @foreach (var latest in Match.Home.Matches.Take(5))
+        {
+            <td>@latest.ShotsTotal</td>
+        }
+        <td>@Match.Home.Matches.Take(5).Sum(x => x.ShotsTotal)</td>
+   </tr>
+   <tr>
+        <td class="text-center label-second">På mål</td>
+        @foreach (var latest in Match.Home.Matches.Take(5))
+        {
+            <td>@latest.ShotsOnTarget</td>
+        }
+        <td>@Match.Home.Matches.Take(5).Sum(x => x.ShotsOnTarget)</td>
+   </tr>
+    <tr>
+        @* Home matches *@
+        <td class="label-header">Hemma @Match.Home.TableRow.PosHome</td>
+        @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+        {
+            <td class="min-width">
+                <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+            </td>
+        }
+        <td>@Match.Home.Stats.HomeSum</td>
+   </tr>
+    <tr>
+        <td class="text-center label-second">Skott</td>
+        @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+        {
+            <td>@latest.ShotsTotal</td>
+        }
+        <td>@Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsTotal)</td>
+
+    </tr>
+    <tr>
+        <td class="text-center label-second">På mål</td>
+        @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5))
+        {
+            <td>@latest.ShotsOnTarget</td>
+        }
+        <td>@Match.Home.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsOnTarget)</td>
+    </tr>
+
+    @* Away matches *@
+    <tr>
+        <td><span class="label-header">Borta</span></td>
+        @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+        {
+            <td class="min-width">
+                <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+            </td>
+        }
+        <td>@Match.Home.Stats.AwaySum</td>
+    </tr>
+    <tr>
+        <td class="text-center label-second">Skott</td>
+        @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+        {
+            <td>@latest.ShotsTotal</td>
+        }
+        <td>@Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsTotal)</td>
+    </tr>
+  <tr>
+    <td class="text-center label-second">På mål</td>
+    @foreach (var latest in Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5))
+    {
+        <td>@latest.ShotsOnTarget</td>
+    }
+    <td>@Match.Home.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsOnTarget)</td>
+
+  </tr>
+    <tr><td colspan="1"></td>
+        <td colspan="6">
+        <table class="table label-second last-table">
+        @foreach (var latest in Match.Home.Matches.Take(5))
+        {        
+            <tr>
+                <td><span>@latest.Date.ToString("d MMM")</span></td>
+                <td colspan="5" class="text-center">
+                    <a href="@latest.FotmobUrl">
+                        <span class="home-participant">@latest.Teams.Home.Name @latest.Score.Home.Value</span>
+                        <span class="participant-split">-</span>
+                        <span class="away-participant"> @latest.Score.Away.Value @latest.Teams.Away.Name</span>
+                    </a>
+                </td>
+            </tr>
+        }        
+        </table>
+    </td>
+    </tr>
+  
+     
+
+@* Away team *@
+
+<tr>
+    <td colspan="7"><span class="font-weight-bold">@Match.Away.Name @Match.Away.TableRow.Pos</span></td>
+</tr>
+
+<tr>
+    <td class="label-header">Senaste</td>
+   
+            @foreach (var latest in Match.Away.Matches.Take(5))
+            {
+                <td class="min-width">
+                    <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+                </td>
+            }
+            <td>@Match.Away.Stats.TotSum</td>
+</tr>
+<tr>
+    <td class="text-center label-second">Skott</td>
+    
+        @foreach (var latest in Match.Away.Matches.Take(5))
+        {
+            <td>@latest.ShotsTotal</td>
+        }
+        <td>@Match.Away.Matches.Take(5).Sum(x => x.ShotsTotal)</td>
+</tr>
+<tr>
+    <td class="text-center label-second">På mål</td>
+    
+    @foreach (var latest in Match.Away.Matches.Take(5))
+    {
+        <td>@latest.ShotsOnTarget</td>
+    }
+    <td>@Match.Away.Matches.Take(5).Sum(x => x.ShotsOnTarget)</td>      
+</tr>
+
+@* Home matches *@
+<tr>
+    <td class="label-header">Hemma</td>   
+    @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+    {
+        <td class="min-width">
+            <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+        </td>
+    }
+    <td>@Match.Away.Stats.HomeSum</td>
+</tr>
+<tr>
+    <td class="text-center label-second">Skott</td>
+   @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+    {
+        <td>@latest.ShotsTotal      </td>
+    }
+    <td>@Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsTotal)</td>
+</tr>
+<tr>
+    <td class="text-center label-second">På mål</td>    
+    @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5))
+    {
+        <td>@latest.ShotsOnTarget</td>
+    }
+    <td class="col-md-2">@Match.Away.Matches.Where(m => m.Place.Equals("home")).Take(5).Sum(x => x.ShotsOnTarget)</td>      
+</tr>
+
+@* Away matches *@
+<tr>
+        <td><span class="label-header">Borta @Match.Away.TableRow.PosAway</span></td>
+    @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+    {
+        <td class="min-width">
+            <span class="@latest.Score.Winner[0]">@latest.Score.Home.Value-@latest.Score.Away.Value</span>
+        </td>
+    }
+    <td>@Match.Away.Stats.AwaySum</td> 
+</tr>
+<tr>
+    <td class="text-center label-second">Skott</td>          
+    @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+    {
+        <td>@latest.ShotsTotal</td>
+    }
+    <td>@Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsTotal)</td>
+</tr>
+<tr>
+    <td class="text-center label-second">På mål</td>
+    
+    @foreach (var latest in Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5))
+    {
+        <td>@latest.ShotsOnTarget</td>
+    }
+
+    <td>@Match.Away.Matches.Where(m => m.Place.Equals("away")).Take(5).Sum(x => x.ShotsOnTarget)</td>
+   
+</tr>
+    <tr>
+        <td colspan="1"></td>
+        <td colspan="6">
+            <table class="table label-second last-table">
+                @foreach (var latest in Match.Away.Matches.Take(5))
+                {
+                    <tr>
+                        <td><span>@latest.Date.ToString("d MMM")</span></td>
+                        <td colspan="5" class="text-center">
+                            <a href="@latest.FotmobUrl">
+                                <span class="home-participant">@latest.Teams.Home.Name @latest.Score.Home.Value</span>
+                                <span class="participant-split">-</span>
+                                <span class="away-participant">@latest.Score.Away.Value @latest.Teams.Away.Name</span>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </table>
+        </td>
+    </tr>
+</table>
+
+@code {
+
+    [Parameter]
+    public GameHistory Match { get; set; }
+
+    [Parameter]
+    public string BettingType { get; set; }
+
+}
