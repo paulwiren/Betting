@@ -99,6 +99,8 @@ namespace LiveScoreBlazorApp.Models
             Names.Add("Northampton", "Northampton");
             Names.Add("Plymouth", "Plymouth");
             Names.Add("Plymouth Argyle", "Plymouth");
+            Names.Add("Birmingha", "Birmingham");
+            Names.Add("Birmingham", "Birmingham");
 
 
 

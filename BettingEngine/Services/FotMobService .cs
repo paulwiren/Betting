@@ -289,6 +289,8 @@ namespace BettingEngine.Services
 
         private async Task<GameHistory> GetMatchData(GameHistory m)
         {
+            if (m.Home.Matches == null)
+                return m;
             int matchesAthome = m.Home.Matches.Count();
             int matchesAtAway = m.Away.Matches.Count();
             for (int i = 1; i < 13; i++)

@@ -9,6 +9,7 @@ namespace BettingEngine.Models
     public class Coupon
     {
         public string Id { get; set; }
+        public List<string> Matches { get; set; } = new List<string>();
         public DateTime GameStop { get; set; }
         public List<GameHistory> Games { get; set; } = new List<GameHistory>();
 
@@ -25,6 +26,7 @@ namespace BettingEngine.Models
     public class GameHistory
     {
         public int Id { get; set; }
+        public int Number { get; set; }
         public Team Home { get; set; }
         public Team Away { get; set; }
 
