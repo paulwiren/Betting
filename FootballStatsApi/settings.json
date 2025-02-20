@@ -1,0 +1,6 @@
+﻿{
+  "docker.enabled": true,
+  "docker.defaultDockerFile": "Dockerfile",
+  "docker.context": "default",
+  "docker.engine": "docker-desktop"
+}

@@ -1,0 +1,5 @@
+﻿services:
+  my-api:
+    image: my-api-image
+    volumes:
+      - /mnt/c/Users/paul/source/repos/livescoreblazorapp/FootballStatsApi:/app

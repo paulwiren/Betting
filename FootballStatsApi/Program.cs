@@ -3,8 +3,13 @@ using LiveScoreBlazorApp.Models;
 using System.Net.Http.Headers;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.Logging.AzureAppServices;
+using Serilog;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 //// Add services to the container.
 ///
@@ -21,6 +26,53 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Optional: Configure Azure diagnostics
+builder.Services.Configure<AzureFileLoggerOptions>(options =>
+{
+    options.FileName = "app-logs";
+    options.FileSizeLimit = 10 * 1024; // 10MB
+    options.RetainedFileCountLimit = 5;
+});
+
+//builder.Services.AddApplicationInsightsTelemetry(builder.Configuration["ApplicationInsights:InstrumentationKey"]);
+
+// builder.Services.GetRequiredService<IConfiguration>()["ApplicationInsights:InstrumentationKey"];
+// Load Serilog configuration from appsettings.json
+//builder.Host.UseSerilog((context, configuration) =>
+//{
+//    configuration
+//        .ReadFrom.Configuration(context.Configuration)
+//        .Enrich.FromLogContext()
+//        .WriteTo.Console()
+//        .WriteTo.File("Logs/app-log-.txt", rollingInterval: RollingInterval.Day)
+//        .WriteTo.ApplicationInsights(
+//            context.Configuration["ApplicationInsights:InstrumentationKey"],
+//TelemetryConverter.Traces);
+//});
+
+//builder.Services.AddApplicationInsightsTelemetry(options =>
+//{
+//    options.ConnectionString = builder.Configuration["ApplicationInsights:InstrumentationKey"];
+//});
+
+builder.Host.UseSerilog((context, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.File("Logs/app-log-.txt", rollingInterval: RollingInterval.Day)
+        .WriteTo.ApplicationInsights(
+            context.Configuration["ApplicationInsights:InstrumentationKey"],
+            TelemetryConverter.Traces);
+});
+
+TelemetryConfiguration.Active.DisableTelemetry = false;  // Ensure telemetry is enabled
+
+builder.Services.AddHttpClient("LoggedClient")
+    .ConfigurePrimaryHttpMessageHandler(() => new LoggingHandler(new HttpClientHandler()));
+
+//APPINSIGHTS_INSTRUMENTATIONKEY
 
 var client = new SecretClient(new Uri("https://betting-keyvault.vault.azure.net/"), new DefaultAzureCredential());
 KeyVaultSecret secret = client.GetSecret("Header-xmas");
@@ -44,7 +96,7 @@ builder.Services.AddHttpClient<IFotMobService, FotMobService>(client =>
               .Add(new MediaTypeWithQualityHeaderValue("text/html"));//ACCEPT header
     client.DefaultRequestHeaders
                  .Add("X-Fm-Req", "eyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hOZXdzP2lkPTQxOTY1NjgmY2NvZGUzPVNXRSZsYW5nPXN2IiwiY29kZSI6MTczMjE0MDg5MzA5OCwiZm9vIjoiOTYzYTBjYmE5In0sInNpZ25hdHVyZSI6IkUzODJEQkQ1MzM4NUU4MTQwRjBCNjYxQTE0Qjk4MEU4In0=");
-    // client.DefaultRequestHeaders.Add("X-Mas", "eyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hlcz9kYXRlPTIwMjQxMjA4JnRpbWV6b25lPUV1cm9wZSUyRlN0b2NraG9sbSZjY29kZTM9U1dFIiwiY29kZSI6MTczMzY5MjU2OTU0MywiZm9vIjoiZWQ5OTNkMGE2In0sInNpZ25hdHVyZSI6IjAxQTAxQzRFNTkxQzJFMTJGQjMwMzdEQjYwODZFOTZDIn0=");
+    // client.DefaultRequestHeaders.Add("X-Mas", "sdfsdfs=");
     client.DefaultRequestHeaders.Add("X-Mas", secret.Value);
 
     client.Timeout = TimeSpan.FromMinutes(10);
@@ -60,6 +112,8 @@ builder.Services.AddHttpClient<IAIService, AIService>(client =>
    
     client.Timeout = TimeSpan.FromMinutes(10);
 });
+
+builder.Services.AddSingleton<PuppeteerService>();
 
 
 

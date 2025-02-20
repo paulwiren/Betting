@@ -1,7 +1,11 @@
 ﻿using BettingEngine.Models;
 using LiveScoreBlazorApp.Models;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using PuppeteerSharp;
 using System.ComponentModel;
+using System.Net.Http;
+using System.Reflection.PortableExecutable;
 using System.Text.Json;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using Match = BettingEngine.Models.Match;
@@ -13,17 +17,21 @@ namespace BettingEngine.Services
         //Task<List<Coupon>> GetFotMobMatches(IEnumerable<Coupon> coupons);
         Task<GameHistory> GetStats(GameHistory m);
         Task<GameHistory> GetStats(string match, DateTime date);
+
+        Task<string> GetHeader(string findUrl, string findHeader);
     }
 
     public class FotMobService : IFotMobService
     {
         public HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
         public IMemoryCache _memoryCache;
         public JsonSerializerOptions _settings;
         public TeamSynonyms _teamSynonyms;
+        private readonly ILogger<FotMobService> _logger;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms)
+        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory)
         {
             _httpClient = client;
             _memoryCache = memoryCache;
@@ -32,10 +40,13 @@ namespace BettingEngine.Services
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
             };
             _teamSynonyms = teamSynonyms;
+            _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
         {
+            _logger.LogWarning("GetFotMobMatchData");
             if (leagues == null)
                 return null;
             var homeNames =  await _teamSynonyms.FindTeamNameSynonyms(home.Name, home.LongName);
@@ -124,6 +135,7 @@ namespace BettingEngine.Services
         // TODO Refactoring and populate all data from match here
         private async Task<FotMobMatchStats> GetMatch(int teamId, Match m)
         {
+            _logger.LogWarning("GetMatch()");
             var result = await GetData($"matchDetails?matchId={m.Id}"); 
             //var result = await GetData($"matchDetails?matchId=4506330");
             var match = JsonSerializer.Deserialize<Response>(result, _settings);
@@ -208,18 +220,32 @@ namespace BettingEngine.Services
 
         }
                 
-        private async Task<string> GetData(string url)
+        private async Task<string> GetData(string url, bool refreshHeader = false)
         {
             try
             {
-                // Hämta webbsidan som en sträng
+                if (refreshHeader)
+                {
+                    var header = await GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                    if (!string.IsNullOrEmpty(header))
+                    {
+                        _httpClient.DefaultRequestHeaders.Remove("X-Mas");
+                        _httpClient.DefaultRequestHeaders.Add("X-Mas", header);
+                    }
+                }
+                
                 return await _httpClient.GetStringAsync(url);
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException ex)
             {
-                // TODO - Show error message
-                Console.WriteLine($"Error: {e.Message}");
-                throw new HttpRequestException(e.HttpRequestError, "No access to data");
+                // Try a a new request to same url with new header value
+                if(!refreshHeader && ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return await GetData(url, true);
+                }
+
+                // TODO - Show error message   
+                throw new HttpRequestException(ex.HttpRequestError, "No access to data");
             }
             return string.Empty;
         }
@@ -459,6 +485,96 @@ namespace BettingEngine.Services
             }
             return m;
         }
+
+        public async Task<string> GetHeader(string findUrl, string findHeader)
+        {
+            var httpClient = _httpClientFactory.CreateClient("LoggedClient");
+            var response = await httpClient.GetAsync("https://fotmob.com/sv");
+            //var httpClient = new HttpClient(new LoggingHandler(new HttpClientHandler()));
+            //var response = await httpClient.GetAsync("https://fotmob.com/sv");
+
+            return "";
+        }
+
+        //public async Task<string> GetHeader(string findUrl, string findHeader)
+        //{
+        //    try
+        //    {
+        //        _logger.LogWarning("First in GetHeader");
+        //        var browserFetcher = new BrowserFetcher();
+
+        //        // Fetch the latest stable revision manually
+        //        var revisionInfo = await browserFetcher.DownloadAsync(BrowserTag.Stable);
+
+
+        //        var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        //        {
+        //            Headless = true,
+        //            //ExecutablePath = revisionInfo.GetExecutablePath(),  // Correct Chromium path
+        //            //ExecutablePath = @"/home/site/wwwroot/tools/chrome/Win64-133.0.6943.98/chrome-win64/chrome.exe",  // Correct Chromium path
+        //            //ExecutablePath = @"/home/site/wwwroot/tools/chrome/ungoogled-chromium-133.0.6943.116-1_Win64/chrome.exe",  // Correct Chromium path
+        //            ExecutablePath = @"/home/site/wwwroot/tools/chrome/Chrome-bin/chrome.exe",  // Correct Chromium path
+
+        //            Args = new[] { "--no-sandbox" }
+        //            //Args = new[]
+        //            //{
+        //            //    "--no-sandbox",                    // Bypass sandbox security
+        //            //    "--disable-setuid-sandbox",        // Disable setuid sandbox
+        //            //    "--disable-dev-shm-usage",         // Prevent `/dev/shm` issues
+        //            //    "--single-process",                // Run in a single process
+        //            //    "--disable-background-networking", // Reduce background tasks
+        //            //    "--disable-software-rasterizer",   // Software rasterizer issues
+        //            //    "--disable-gpu"                    // No GPU in Azure App Service
+        //            //}
+        //           // Env = new Dictionary<string, string>
+        //           // {
+        //           //     ["PATH"] = "/home/site/wwwroot/tools/chrome/Win64-133.0.6943.98/chrome-win64/;" +
+        //           //"/home/site/wwwroot/chrome/"
+        //           // }
+        //             ,DumpIO = true
+        //        });
+
+        //        //var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        //        //{
+        //        //    Headless = true,
+        //        //    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+        //        //});
+
+        //        await new BrowserFetcher().DownloadAsync(BrowserTag.Stable);
+        //        //var browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
+        //        //var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        //        //{
+        //        //    Headless = true,
+        //        //    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+        //        //});
+        //        var page = await browser.NewPageAsync();
+        //        string header = string.Empty;
+        //        //x-mas: eyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hlcz9kYXRlPTIwMjUwMjEyIiwiY29kZSI6MTczOTQwMDEzMjIyMywiZm9vIjoicHJvZHVjdGlvbjo2Mjk5ZGRmMTAwMjU3YTg2Y2QzYWY2Y2VmOWNjYWVhMzQ1MTA5YTdhLXVuZGVmaW5lZCJ9LCJzaWduYXR1cmUiOiJCRkNCQ0Y3NkNERDBBQjMwMjVEMzZFMjgxNEM4NTE5QSJ9
+        //        page.Request += (sender, e) =>
+        //        {
+        //            //e.Request.Url
+        //            // https://www.fotmob.com/api/matches
+        //            if (e.Request.Url.Contains(findUrl))
+        //            {
+        //                var headers = e.Request.Headers.Where(h => h.Key.Equals(findHeader));
+        //                if (headers != null)
+        //                {
+        //                    header = headers.First().Value;
+        //                }
+        //            }
+        //        };
+
+        //        await page.GoToAsync("https://fotmob.com/sv");
+        //        await browser.CloseAsync();
+
+        //        return header;
+        //    }
+        //    catch(Exception ex) {
+        //        _logger.LogError(ex, "GetHeader");
+        //        Console.WriteLine(ex.Message);
+        //    }
+        //    return string.Empty;
+        //}
     }
 }
 

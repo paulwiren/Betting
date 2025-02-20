@@ -2,6 +2,8 @@ using BettingEngine.Models;
 using BettingEngine.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Serilog;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 
 namespace FootballStatsApi.Controllers
@@ -101,6 +103,7 @@ namespace FootballStatsApi.Controllers
         [HttpGet("RawCoupon/{name}")]
         public async Task<ActionResult<List<Coupon>>> GetRawCoupon(string name)
         {
+            _logger.LogWarning("GetRawCoupon()");
             if (string.IsNullOrEmpty(name))
                 name = "europatipset";
 
@@ -209,51 +212,24 @@ namespace FootballStatsApi.Controllers
         //    }
         //}
 
+
+
         [HttpGet("GetMatch/{name}/{match}/{number}")]
         public async Task<ActionResult<GameHistory>> GetMatch(string name, string match, int number)
         {
             try
             {
-                if (name.Equals("async"))
-                    name = "topptipset";
-
-                //string json = await _bettingService.GetCouponAsync(name);
-                //var matches = await _bettingService.GetMatches(json);
-                //var percentages = await _bettingService.GetPercentage(json);
-                var coupons = new List<Coupon>();
-                Coupon coupon = new Coupon();
-                if (!_memoryCache.TryGetValue(name, out coupons))
-                {
-
-                    coupons = new List<Coupon>();
-
-                }
-                if (!coupons.Any())
-                {
-                    var json = _memoryCache.Get<string>($"{name}-json");
-                    var percentages = await _bettingService.GetPercentage(json);
-                    var dates = await GetCloseDates(json);
-                    var gameStopDates = dates.ToList();
-                    coupon = new Coupon();
-                    coupon.GameStop = gameStopDates.First();
-                    coupons.Add(coupon);
-                }
-                coupon = coupons.First();
-                //int index = matches.IndexOf(match);
-
-                var stopDate = coupon.GameStop;
-
-                // will not work for multiple coupons. stopdate could be later than stopdate
-                var gh = await _fotMobService.GetStats(match, stopDate);
-                gh = await _fotMobService.GetStats(gh);
-                gh.Number = number;
-                coupon.Games.Add(gh);
-
-                _memoryCache.Set<List<Coupon>>(name, coupons, stopDate);
-                return gh;
+                return await GetMatchData(name, match, number);
             }
             catch (Exception ex)
             {
+                // Try to get new header value
+                var header = await _fotMobService.GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                //var header = await _fotMobService.GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                //if (string.IsNullOrEmpty(header))
+                //{
+                //    return await GetMatchData(name, match, number);
+                //}
                 return NotFound(new { message = "Match not found." });
             }
         }
@@ -291,6 +267,44 @@ namespace FootballStatsApi.Controllers
             return await _aiService.GetDataFromAI(teams);          
         }
 
+        private async Task<ActionResult<GameHistory>> GetMatchData(string name, string match, int number)
+        {
+            if (name.Equals("async"))
+                name = "topptipset";
+
+            var coupons = new List<Coupon>();
+            Coupon coupon = new Coupon();
+            if (!_memoryCache.TryGetValue(name, out coupons))
+            {
+
+                coupons = new List<Coupon>();
+
+            }
+            if (!coupons.Any())
+            {
+                var json = _memoryCache.Get<string>($"{name}-json");
+                var percentages = await _bettingService.GetPercentage(json);
+                var dates = await GetCloseDates(json);
+                var gameStopDates = dates.ToList();
+                coupon = new Coupon();
+                coupon.GameStop = gameStopDates.First();
+                coupons.Add(coupon);
+            }
+            coupon = coupons.First();
+            //int index = matches.IndexOf(match);
+
+            var stopDate = coupon.GameStop;
+
+            // will not work for multiple coupons. stopdate could be later than stopdate
+            var gh = await _fotMobService.GetStats(match, stopDate);
+            gh = await _fotMobService.GetStats(gh);
+            gh.Number = number;
+            coupon.Games.Add(gh);
+
+            _memoryCache.Set<List<Coupon>>(name, coupons, stopDate);
+            return gh;
+        }
+
         private async Task<IEnumerable<DateTime>> GetCloseDates(string json)
         {
             string pattern = @"""regCloseTime"":""(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2})""";
@@ -326,4 +340,10 @@ namespace FootballStatsApi.Controllers
             }
         }
     }
+
+
+   
+
+    
+
 }
