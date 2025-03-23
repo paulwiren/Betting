@@ -25,13 +25,14 @@ namespace BettingEngine.Services
     {
         public HttpClient _httpClient;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly PuppeteerService _puppeteerService;
         public IMemoryCache _memoryCache;
         public JsonSerializerOptions _settings;
         public TeamSynonyms _teamSynonyms;
         private readonly ILogger<FotMobService> _logger;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory)
+        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory, PuppeteerService puppeteerService)
         {
             _httpClient = client;
             _memoryCache = memoryCache;
@@ -42,6 +43,7 @@ namespace BettingEngine.Services
             _teamSynonyms = teamSynonyms;
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _puppeteerService = puppeteerService;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
@@ -227,6 +229,7 @@ namespace BettingEngine.Services
                 if (refreshHeader)
                 {
                     var header = await GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                    _logger.LogWarning($"Response header x-mas: {header}");
                     if (!string.IsNullOrEmpty(header))
                     {
                         _httpClient.DefaultRequestHeaders.Remove("X-Mas");
@@ -247,7 +250,11 @@ namespace BettingEngine.Services
                 // TODO - Show error message   
                 throw new HttpRequestException(ex.HttpRequestError, "No access to data");
             }
-            return string.Empty;
+            catch (Exception ex)
+            {
+                throw;
+            }
+            //return string.Empty;
         }
 
         public async Task<GameHistory> GetStats(GameHistory m)
@@ -488,12 +495,7 @@ namespace BettingEngine.Services
 
         public async Task<string> GetHeader(string findUrl, string findHeader)
         {
-            var httpClient = _httpClientFactory.CreateClient("LoggedClient");
-            var response = await httpClient.GetAsync("https://fotmob.com/sv");
-            //var httpClient = new HttpClient(new LoggingHandler(new HttpClientHandler()));
-            //var response = await httpClient.GetAsync("https://fotmob.com/sv");
-
-            return "";
+            return await _puppeteerService.GetSubRequestHeadersAsync("https://fotmob.com/sv");           
         }
 
         //public async Task<string> GetHeader(string findUrl, string findHeader)

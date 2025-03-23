@@ -36,68 +36,7 @@ namespace FootballStatsApi.Controllers
             if (string.IsNullOrEmpty(name))
                 name = "europatipset";
 
-            try
-            {
-
-                var coupons = new List<Coupon>();
-                if (_memoryCache.TryGetValue(name, out coupons))
-                {
-                    await UpdatePrecentages(name, coupons.First());
-                    return coupons;
-                }
-                coupons = new List<Coupon>();
-                string json = await _bettingService.GetCouponAsync(name);
-                
-                var matches = await _bettingService.GetMatches(json);
-                var percentages = await _bettingService.GetPercentage(json);
-                var dates = await GetCloseDates(json);
-                var gameStopDates = dates.ToList();
-                
-                int skip = 0;
-                int take = 13;
-                int nrOfcoupons = 1;
-                int couponIndex = 0;                
-                if (matches.Count > 13)
-                {
-                    nrOfcoupons = matches.Count / 8;
-                    take = 8;
-                }
-                while (nrOfcoupons > 0)
-                {
-
-                    var coupon = new Coupon();
-                    coupon.GameStop = gameStopDates[couponIndex++];
-                    foreach (var p in percentages.Skip(skip).Take(take))
-                    {
-                        coupon.Percentages.Add(p);
-                    }
-
-                    int id = 1;
-                    foreach (var match in matches.Skip(skip).Take(take))
-                    {
-                        var gh = await _fotMobService.GetStats(match, dates.First());
-                        if ((skip == 0 || skip == 8) && gh != null && gh.Id > 0)
-                        {
-                            gh = await _fotMobService.GetStats(gh);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Couldn't find data on: {match}");
-                        }
-                        if (gh != null)
-                            coupon.Games.Add(gh);
-                        //coupon.Games.Add(new GameHistory { Id = id++, Home = new Team { Name = match.Split('-')[0].Trim() }, Away = new Team { Name = match.Split('-')[1].Trim() } });
-                    }
-                    coupons.Add(coupon);
-                    skip += 8;
-                    nrOfcoupons--;
-                }
-                _memoryCache.Set<List<Coupon>>(name, coupons, coupons.First().GameStop.AddHours(2));
-                return coupons;
-            }
-            catch (Exception ex) {
-                return NotFound(new { message = "Coupon not found." });
-            }
+            return await GetCoupon(name);           
         }
 
         [HttpGet("RawCoupon/{name}")]
@@ -224,7 +163,7 @@ namespace FootballStatsApi.Controllers
             catch (Exception ex)
             {
                 // Try to get new header value
-                var header = await _fotMobService.GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                //var header = await _fotMobService.GetHeader("https://www.fotmob.com/api/matches", "x-mas");
                 //var header = await _fotMobService.GetHeader("https://www.fotmob.com/api/matches", "x-mas");
                 //if (string.IsNullOrEmpty(header))
                 //{
@@ -303,6 +242,73 @@ namespace FootballStatsApi.Controllers
 
             _memoryCache.Set<List<Coupon>>(name, coupons, stopDate);
             return gh;
+        }
+
+        private async Task<ActionResult<List<Coupon>>> GetCoupon(string name, int retry = 0)
+        {
+            try
+            {
+
+                var coupons = new List<Coupon>();
+                if (_memoryCache.TryGetValue(name, out coupons))
+                {
+                    await UpdatePrecentages(name, coupons.First());
+                    return coupons;
+                }
+                coupons = new List<Coupon>();
+                string json = await _bettingService.GetCouponAsync(name);
+
+                var matches = await _bettingService.GetMatches(json);
+                var percentages = await _bettingService.GetPercentage(json);
+                var dates = await GetCloseDates(json);
+                var gameStopDates = dates.ToList();
+
+                int skip = 0;
+                int take = 13;
+                int nrOfcoupons = 1;
+                int couponIndex = 0;
+                if (matches.Count > 13)
+                {
+                    nrOfcoupons = matches.Count / 8;
+                    take = 8;
+                }
+                while (nrOfcoupons > 0)
+                {
+
+                    var coupon = new Coupon();
+                    coupon.GameStop = gameStopDates[couponIndex++];
+                    foreach (var p in percentages.Skip(skip).Take(take))
+                    {
+                        coupon.Percentages.Add(p);
+                    }
+
+                    int id = 1;
+                    foreach (var match in matches.Skip(skip).Take(take))
+                    {
+                        var gh = await _fotMobService.GetStats(match, dates.First());
+                        if ((skip == 0 || skip == 8) && gh != null && gh.Id > 0)
+                        {
+                            gh = await _fotMobService.GetStats(gh);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Couldn't find data on: {match}");
+                        }
+                        if (gh != null)
+                            coupon.Games.Add(gh);
+                        //coupon.Games.Add(new GameHistory { Id = id++, Home = new Team { Name = match.Split('-')[0].Trim() }, Away = new Team { Name = match.Split('-')[1].Trim() } });
+                    }
+                    coupons.Add(coupon);
+                    skip += 8;
+                    nrOfcoupons--;
+                }
+                _memoryCache.Set<List<Coupon>>(name, coupons, coupons.First().GameStop.AddHours(2));
+                return coupons;
+            }
+            catch (Exception ex)
+            {               
+                return NotFound(new { message = ex.Message, Detail = ex.ToString() });
+            }
         }
 
         private async Task<IEnumerable<DateTime>> GetCloseDates(string json)

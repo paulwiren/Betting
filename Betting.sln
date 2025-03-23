@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BettingEngine", "BettingEng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FootballStatsApi", "FootballStatsApi\FootballStatsApi.csproj", "{F06F0B34-EF10-488D-A37C-B5726C7E1F24}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{0715F69E-0E9C-4B92-B458-775D44B7E892}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{F06F0B34-EF10-488D-A37C-B5726C7E1F24}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F06F0B34-EF10-488D-A37C-B5726C7E1F24}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F06F0B34-EF10-488D-A37C-B5726C7E1F24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0715F69E-0E9C-4B92-B458-775D44B7E892}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0715F69E-0E9C-4B92-B458-775D44B7E892}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0715F69E-0E9C-4B92-B458-775D44B7E892}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0715F69E-0E9C-4B92-B458-775D44B7E892}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
