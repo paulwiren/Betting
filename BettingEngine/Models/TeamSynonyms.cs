@@ -1,7 +1,4 @@
-﻿using System.Drawing;
-using System.Threading.Tasks;
-
-namespace LiveScoreBlazorApp.Models
+﻿namespace LiveScoreBlazorApp.Models
 {
     public class TeamSynonyms
     {

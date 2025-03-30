@@ -31,6 +31,7 @@ builder.Services.AddTransient<ICouponService, CouponService>();
 builder.Services.AddTransient<IFotMobService, FotMobService>();
 builder.Services.AddTransient<IAIService, AIService>();
 builder.Services.AddSingleton<TeamSynonyms>();
+builder.Services.AddSingleton<LevenshteinAlgorithmService>();
 
 builder.Services.AddControllers();
 //// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -121,7 +122,7 @@ builder.Services.AddHttpClient<IFotMobService, FotMobService>(client =>
     client.DefaultRequestHeaders
                  .Add("X-Fm-Req", "eyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hOZXdzP2lkPTQxOTY1NjgmY2NvZGUzPVNXRSZsYW5nPXN2IiwiY29kZSI6MTczMjE0MDg5MzA5OCwiZm9vIjoiOTYzYTBjYmE5In0sInNpZ25hdHVyZSI6IkUzODJEQkQ1MzM4NUU4MTQwRjBCNjYxQTE0Qjk4MEU4In0=");
 
-    client.DefaultRequestHeaders.Add("X-Mas", "eyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hlcz9kYXRlPTIwMjUwMzE0JnRpbWV6b25lPUV1cm9wZSUyRlN0b2NraG9sbSZjY29kZTM9U1dFIiwiY29kZSI6MTc0MTkxMDMzMTgwNiwiZm9vIjoicHJvZHVjdGlvbjowYjAxMWEwM2U0NGVlZGNkOTI1OWY0NTU2OGVjNjE5NWFiNzU4MTI3LXVuZGVmaW5lZCJ9LCJzaWduYXR1cmUiOiI1ODgxOUQ5OTA4NThGQkE0QkUwMzQxNkYyQzRDQTc3QSJ9");
+    client.DefaultRequestHeaders.Add("X-Mas", "reyJib2R5Ijp7InVybCI6Ii9hcGkvbWF0Y2hlcz9kYXRlPTIwMjUwMzI4JnRpbWV6b25lPUV1cm9wZSUyRlN0b2NraG9sbSZjY29kZTM9U1dFIiwiY29kZSI6MTc0MzExOTkzMzMwNiwiZm9vIjoicHJvZHVjdGlvbjoyNzUxMTkzOGEzZDY0NTA2NzA5ZDU5Yjg5ZTdkMmFmMDZiZDM2OWQxLXVuZGVmaW5lZCJ9LCJzaWduYXR1cmUiOiIzNkNCNkVFOTExOTIzNEU4NzI0NjQ1MDM1ODAzREYzQyJ9");
 
     client.Timeout = TimeSpan.FromMinutes(10);
 });
@@ -139,17 +140,16 @@ builder.Services.AddHttpClient<IAIService, AIService>(client =>
 
 builder.Services.AddSingleton<PuppeteerService>();
 
-//builder.WebHost.ConfigureKestrel(options =>
-//{
-//    options.ListenAnyIP(5000); // HTTP
-//    options.ListenAnyIP(5001, listenOptions => listenOptions.UseHttps()); // HTTPS
-//});
 
-builder.WebHost.ConfigureKestrel(options =>
+
+// Only apply this configuration in Production
+if (builder.Environment.IsProduction())
 {
-    options.ListenAnyIP(80); // Ensure it's not bound to localhost
-});
-
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenAnyIP(80); // Ensure it's not bound to localhost
+    });
+}
 
 
 var app = builder.Build();
@@ -194,8 +194,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-
-app.MapGet("/", () => "Hello from FootballStatsApi!");
 
 app.Run();

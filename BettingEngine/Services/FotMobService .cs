@@ -2,12 +2,7 @@
 using LiveScoreBlazorApp.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using PuppeteerSharp;
-using System.ComponentModel;
-using System.Net.Http;
-using System.Reflection.PortableExecutable;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using Match = BettingEngine.Models.Match;
 
 namespace BettingEngine.Services
@@ -26,13 +21,14 @@ namespace BettingEngine.Services
         public HttpClient _httpClient;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly PuppeteerService _puppeteerService;
+        private readonly LevenshteinAlgorithmService _levenshteinService;
         public IMemoryCache _memoryCache;
         public JsonSerializerOptions _settings;
-        public TeamSynonyms _teamSynonyms;
+        public readonly TeamSynonyms _teamSynonyms;
         private readonly ILogger<FotMobService> _logger;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory, PuppeteerService puppeteerService)
+        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService)
         {
             _httpClient = client;
             _memoryCache = memoryCache;
@@ -44,6 +40,7 @@ namespace BettingEngine.Services
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _puppeteerService = puppeteerService;
+            _levenshteinService = levenshteinService;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
@@ -102,6 +99,9 @@ namespace BettingEngine.Services
                     }
                 }
             }
+            var fotmobMatch = _levenshteinService.FindBestMatch(home.Name, away.Name, leagues);
+            if (fotmobMatch != null)
+                return fotmobMatch;
             return new FotMobMatch { Id = 0, Home = new FotMobTeam { Name = home.Name }, Away = new FotMobTeam { Name = away.Name} };
         }
 

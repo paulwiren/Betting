@@ -1,7 +1,5 @@
-﻿using BettingEngine.Models;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using PuppeteerSharp;
-using System.Runtime.CompilerServices;
 
 namespace BettingEngine.Services
 {
@@ -18,12 +16,45 @@ namespace BettingEngine.Services
             {
                 //await new BrowserFetcher().DownloadAsync(BrowserTag.Stable);
                 var browseFetcher = await new BrowserFetcher().DownloadAsync();
-                var browser = await Puppeteer.LaunchAsync(new LaunchOptions { 
-                                               // ExecutablePath = "/app/Chrome/Linux-132.0.6834.88/chrome-linux64/chrome", 
-                                                Headless = true,
-                                                Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
-                                            });
-                //var ExecutablePath = browseFetcher.GetExecutablePath(1320683488),
+                //var launchOptions = new LaunchOptions
+                //{
+                //    ExecutablePath = "/app/bin/Debug/net8.0/Chrome/Linux-132.0.6834.83/chrome-linux64/chrome",
+                //    //ExecutablePath = "/app/bin/Debug/net8.0/Chrome/Linux-132.0.6834.83/chrome-linux64/chrome",
+
+                //    Headless = true,
+                //    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" },
+                //    DumpIO = true // ✅ Logs Chromium output
+                //};
+                //var browser = await Puppeteer.LaunchAsync(launchOptions);
+                var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                {
+                    //ExecutablePath = "/app/Chrome/Linux-132.0.6834.88/chrome-linux64/chrome",
+                    //ExecutablePath = @"C:\Users\Paul\Source\Repos\LiveScoreBlazorApp\FootballStatsApi\bin\Debug\net8.0\Chrome\Win64-132.0.6834.83\chrome-win64\chrome.exe",
+                    //ExecutablePath = @"C:/Users/Paul/Source/Repos/LiveScoreBlazorApp/FootballStatsApi/bin/Debug/net8.0/Chrome/Win64-132.0.6834.83/chrome-win64/chrome.exe",
+                    //ExecutablePath = "/app/bin/Debug/net8.0/Chrome/Linux-132.0.6834.83/chrome-linux64/chrome",
+
+                    //ExecutablePath = @"/app/Chrome/Win64-134.0.6998.88/chrome-win64/chrome.exe",
+                    Headless = true,
+                    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }
+                    //Args = new[]
+                    //{
+                    //    "--no-sandbox",
+                    //    "--disable-setuid-sandbox",
+                    //    "--disable-dev-shm-usage",
+                    //    "--disable-gpu",
+                    //    "--disable-software-rasterizer",
+                    //    "--remote-debugging-port=9222"
+                    //}
+
+                    //Args = new[]   {
+                    //    "--no-sandbox",
+                    //    "--disable-setuid-sandbox",
+                    //    "--disable-sync",
+                    //    "--disable-extensions",
+                    //    "--disable-features=Sync",
+                    //    "--disable-user-data-dir"    }
+                });
+               //ar ExecutablePath = browseFetcher.GetExecutablePath(1320683488),
                 var page = await browser.NewPageAsync();
 
                 var headersList = new List<string>();

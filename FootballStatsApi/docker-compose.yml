@@ -1,5 +1,9 @@
 ﻿services:
   my-api:
     image: my-api-image
+    ports:
+      - "8080:8080"
+      - "8081:8081"
     volumes:
       - /mnt/c/Users/paul/source/repos/livescoreblazorapp/FootballStatsApi:/app
+    

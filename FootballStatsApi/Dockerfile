@@ -1,12 +1,36 @@
 # See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-
-
-
 # Use the ASP.NET runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+
+# Install Chromium dependencies
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libnss3 \
+    libgconf-2-4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxcomposite1 \
+    libxrandr2 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libxdamage1 \
+    libxfixes3 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxext6 \
+    fonts-liberation \
+    libstdc++6 \
+    libfontconfig1 \
+    libxi6 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-EXPOSE 80
+EXPOSE 80 8080 8081
 
 # Build and publish your app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
@@ -18,12 +42,9 @@ COPY . .
 WORKDIR "/src/FootballStatsApi"
 RUN dotnet publish "FootballStatsApi.csproj" -c Release -o /app/publish
 
+
 # Final stage: Run the app
 FROM base AS final
-RUN apt-get update && apt-get install -y wget gnupg ca-certificates \
-    && wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list' \
-    && apt-get update && apt-get install -y google-chrome-stable
 WORKDIR /app
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "FootballStatsApi.dll"]
