@@ -1,11 +1,10 @@
-using Azure.Identity;
-using Azure.Security.KeyVault.Secrets;
-using BettingEngine.Models;
+using Azure.Core;
 using BettingEngine.Services;
 using LiveScoreBlazorApp.Models;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Logging.AzureAppServices;
 using Serilog;
+using StackExchange.Redis;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -38,71 +37,61 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//Optional: Configure Azure diagnostics
-builder.Services.Configure<AzureFileLoggerOptions>(options =>
+//builder.Services.AddSingleton<IConnectionMultiplexer>(
+//    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
+
+
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
+    throw new Exception("Redis connection string is missing");
+
+//var credential = new DefaultAzureCredential();
+//var accessToken = credential.GetToken(
+//    new Azure.Core.TokenRequestContext(new[] { "https://*.cache.windows.net/.default" })
+//);
+
+var redisOptions = new ConfigurationOptions
 {
-    options.FileName = "app-logs";
-    options.FileSizeLimit = 10 * 1024; // 10MB
-    options.RetainedFileCountLimit = 5;
+    EndPoints = { "FootballStatsApiRedisCache.redis.cache.windows.net:6380" },
+    //User = "default", // Use "default" if Redis Enterprise is enabled
+    Password = "UYxwXs7y498EsBI82A8X2ZnDPau7okYOwAzCaC6CJqQ=", // Use the Managed Identity token
+    Ssl = true,
+    AbortOnConnectFail = false
+};
+
+//var db = redis.GetDatabase();
+//await db.StringSetAsync("test", "Hello from ACI!");
+// Register Redis ConnectionMultiplexer as a singleton
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    return ConnectionMultiplexer.Connect(redisOptions);
 });
 
-//builder.Services.AddApplicationInsightsTelemetry(builder.Configuration["ApplicationInsights:InstrumentationKey"]);
+//var redis = ConnectionMultiplexer.Connect(redisOptions);
+//var db = redis.GetDatabase();
+//await db.StringSetAsync("test", "Hello from ACI!");
 
-// builder.Services.GetRequiredService<IConfiguration>()["ApplicationInsights:InstrumentationKey"];
-// Load Serilog configuration from appsettings.json
-//builder.Host.UseSerilog((context, configuration) =>
-//{
-//    configuration
-//        .ReadFrom.Configuration(context.Configuration)
-//        .Enrich.FromLogContext()
-//        .WriteTo.Console()
-//        .WriteTo.File("Logs/app-log-.txt", rollingInterval: RollingInterval.Day)
-//        .WriteTo.ApplicationInsights(
-//            context.Configuration["ApplicationInsights:InstrumentationKey"],
-//TelemetryConverter.Traces);
-//});
-
-//builder.Services.AddApplicationInsightsTelemetry(options =>
-//{
-//    options.ConnectionString = builder.Configuration["ApplicationInsights:InstrumentationKey"];
-////});
-
-builder.Host.UseSerilog((context, configuration) =>
+// Register IDatabase as a scoped service
+builder.Services.AddScoped<IDatabase>(sp =>
 {
-    configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File("Logs/app-log-.txt", rollingInterval: RollingInterval.Day)
+    var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+    return multiplexer.GetDatabase();
+});
+
+// Read Application Insights instrumentation key from environment variables
+var appInsightsKey = builder.Configuration["ApplicationInsights:InstrumentationKey"];
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()  // Logs to console (for debugging)
     .WriteTo.ApplicationInsights(
-        context.Configuration["ApplicationInsights:InstrumentationKey"],
-        TelemetryConverter.Traces);
-});
+        new TelemetryConfiguration { ConnectionString = appInsightsKey },
+        TelemetryConverter.Traces
+    )
+    .CreateLogger();
 
-TelemetryConfiguration.Active.DisableTelemetry = false;  // Ensure telemetry is enabled
-
-//AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
-//ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
-
-
-builder.Services.AddHttpClient("LoggedClient")
-    .ConfigurePrimaryHttpMessageHandler(() => new LoggingHandler(new HttpClientHandler()));
-
-//APPINSIGHTS_INSTRUMENTATIONKEY
-
-//var client = new SecretClient(new Uri("https://betting-keyvault.vault.azure.net/"), new DefaultAzureCredential());
-//KeyVaultSecret secret = client.GetSecret("Header-xmas");
-
-
-
-//var keyVaultName = "betting-keyvault";//Environment.GetEnvironmentVariable("KEY_VAULT_NAME");
-//var secretName = "Header-xmas";// Environment.GetEnvironmentVariable("SECRET_NAME");
-//var kvUri = $"https://{keyVaultName}.vault.azure.net/";
-
-//var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential());
-//KeyVaultSecret secret = await client.GetSecretAsync(secretName);
-
-//var header-xmas = secret.Value;
+builder.Host.UseSerilog();
 
 builder.Services.AddHttpClient<IBettingService, BettingService>(client =>
 {
@@ -156,23 +145,6 @@ var app = builder.Build();
 
 app.UseCors("AllowVueApp");
 
-//app.Use(async (context, next) =>
-//{
-//    context.Response.Headers.Append("Access-Control-Allow-Origin", "http://betting-app.ezfjcdagb9acf8bm.swedencentral.azurecontainer.io");
-//    context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-//    context.Response.Headers.Append("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-//    if (context.Request.Method == "OPTIONS")
-//    {
-//        context.Response.StatusCode = 204;
-//        await context.Response.CompleteAsync();
-//        return;
-//    }
-
-//    await next();
-//});
-
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -185,12 +157,6 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthorization();
-
-
-//app.UseEndpoints(endpoints =>
-//{
-//    endpoints.MapControllers(); // This maps controller routes.
-//});
 
 app.MapControllers();
 

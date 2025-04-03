@@ -33,6 +33,7 @@ namespace FootballStatsApi.Controllers
         [HttpGet("{name}")]
         public async Task<ActionResult<List<Coupon>>> Get(string name)
         {
+            _logger.LogWarning("GetCoupon()");
             if (string.IsNullOrEmpty(name))
                 name = "europatipset";
 
@@ -42,7 +43,7 @@ namespace FootballStatsApi.Controllers
         [HttpGet("RawCoupon/{name}")]
         public async Task<ActionResult<List<Coupon>>> GetRawCoupon(string name)
         {
-            _logger.LogWarning("GetRawCoupon()");
+            _logger.LogInformation($"GetRawCoupon() - {name}");
             if (string.IsNullOrEmpty(name))
                 name = "europatipset";
 
@@ -51,11 +52,17 @@ namespace FootballStatsApi.Controllers
 
             try
             {
+                var coupons = new List<Coupon>();
+                //if (_memoryCache.TryGetValue(name, out coupons))
+                //{
+                //    await UpdatePrecentages(name, coupons.First());
+                //    return coupons;
+                //}
+                //coupons = new List<Coupon>();
+
                 string json = await _bettingService.GetCouponAsync(name);
                 var matches = await _bettingService.GetMatches(json);
                 var percentages = await _bettingService.GetPercentage(json);
-
-                var coupons = new List<Coupon>();               
 
                 var dates = await GetCloseDates(json);
                 var gameStopDates = dates.ToList();
@@ -97,7 +104,7 @@ namespace FootballStatsApi.Controllers
                 //coupon.GameStop = dates.First();
                 //coupon.Percentages = percentages;
                 //coupons.Add(coupon);
-                
+
                 return coupons;
             }
             catch (Exception ex)

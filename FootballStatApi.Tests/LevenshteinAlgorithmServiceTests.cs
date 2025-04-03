@@ -1,5 +1,6 @@
 using BettingEngine.Models;
 using BettingEngine.Services;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace FootballStatApi.Tests
@@ -8,11 +9,22 @@ namespace FootballStatApi.Tests
     {
         private readonly LevenshteinAlgorithmService _levenshteinService;
         private readonly Mock<LevenshteinAlgorithmService> _mockLevenshteinService;
+        private readonly ILogger<LevenshteinAlgorithmService> _logger;
 
         public LevenshteinAlgorithmServiceTests()
-        {
-            _levenshteinService = new LevenshteinAlgorithmService();
+        {            
+            using var factory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Debug);
+            });
+            _logger = factory.CreateLogger<LevenshteinAlgorithmService>();
+
+            _levenshteinService = new LevenshteinAlgorithmService(_logger);
             _mockLevenshteinService = new Mock<LevenshteinAlgorithmService>();
+
+
+
         }
 
         [Fact]

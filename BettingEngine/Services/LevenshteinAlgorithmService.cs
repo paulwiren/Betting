@@ -1,18 +1,21 @@
 ﻿using BettingEngine.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Serilog.Core;
 
 namespace BettingEngine.Services
 {
     public class LevenshteinAlgorithmService
     {
+        private readonly ILogger<LevenshteinAlgorithmService> _logger;
 
-        //public Match FindBestMatch(Match stryktipsetMatch, List<Match> fotmobMatches)
+        public LevenshteinAlgorithmService(ILogger<LevenshteinAlgorithmService> logger)
+        {
+            _logger = logger;
+        }
+
         public FotMobMatch FindBestMatch(string homeTeam, string awayTeam, IEnumerable<FotMobLeague> leagues)
-        {           
+        {
+            _logger.LogInformation($"FindBestMatch: {homeTeam}-{awayTeam}");
             int highestScore = 0;
             foreach (var league in leagues)
             {
@@ -26,11 +29,12 @@ namespace BettingEngine.Services
 
                     if (matchScore > highestScore && matchScore > 95) // 70 is the threshold
                     {
-                        highestScore = matchScore;
+                        _logger.LogInformation($"FindBestMatch: Score {homeTeam}-{awayTeam} = {matchScore}");
                         return fotmobMatch;
                     }
                 }
             }
+            _logger.LogInformation($"FindBestMatch: No match found {homeTeam}-{awayTeam}");
             return null;
         }
 

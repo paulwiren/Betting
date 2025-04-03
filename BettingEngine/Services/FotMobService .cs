@@ -2,6 +2,7 @@
 using LiveScoreBlazorApp.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using System.Text.Json;
 using Match = BettingEngine.Models.Match;
 
@@ -19,16 +20,17 @@ namespace BettingEngine.Services
     public class FotMobService : IFotMobService
     {
         public HttpClient _httpClient;
-        private readonly IHttpClientFactory _httpClientFactory;
+        //private readonly IHttpClientFactory _httpClientFactory;
         private readonly PuppeteerService _puppeteerService;
         private readonly LevenshteinAlgorithmService _levenshteinService;
         public IMemoryCache _memoryCache;
         public JsonSerializerOptions _settings;
         public readonly TeamSynonyms _teamSynonyms;
         private readonly ILogger<FotMobService> _logger;
+        private readonly IDatabase _cache;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logger, IHttpClientFactory httpClientFactory, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService)
+        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logge, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService, ILogger<FotMobService> logger, IDatabase cache)
         {
             _httpClient = client;
             _memoryCache = memoryCache;
@@ -38,9 +40,11 @@ namespace BettingEngine.Services
             };
             _teamSynonyms = teamSynonyms;
             _logger = logger;
-            _httpClientFactory = httpClientFactory;
+            // _httpClientFactory = httpClientFactory;
             _puppeteerService = puppeteerService;
             _levenshteinService = levenshteinService;
+            _logger = logger;
+            _cache = cache;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
@@ -137,8 +141,15 @@ namespace BettingEngine.Services
         // TODO Refactoring and populate all data from match here
         private async Task<FotMobMatchStats> GetMatch(int teamId, Match m)
         {
-            _logger.LogWarning("GetMatch()");
-            var result = await GetData($"matchDetails?matchId={m.Id}"); 
+            string cacheKey = $"fotmob-{m.Id}";
+            //var result  = await _cache.StringGetAsync(cacheKey);
+            //if(result.IsNull)
+            //{
+            //    _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
+            //    result = await GetData($"matchDetails?matchId={m.Id}");
+            //    await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
+            //}
+            var result = await GetData($"matchDetails?matchId={m.Id}");
             //var result = await GetData($"matchDetails?matchId=4506330");
             var match = JsonSerializer.Deserialize<Response>(result, _settings);
             if (match == null)

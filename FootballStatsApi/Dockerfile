@@ -29,7 +29,6 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
 EXPOSE 80 8080 8081
 
 # Build and publish your app
@@ -47,6 +46,13 @@ RUN dotnet publish "FootballStatsApi.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
+# Ensure appsettings.production.json is included
+#COPY appsettings.production.json /app/appsettings.production.json
+
+# Set default environment (can be overridden)
+#ENV DOTNET_ENVIRONMENT=Production
+
 ENTRYPOINT ["dotnet", "FootballStatsApi.dll"]
 
 
