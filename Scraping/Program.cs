@@ -1,10 +1,44 @@
 ﻿using PuppeteerSharp;
+using StackExchange.Redis;
 using System;
 using System.Threading.Tasks;
 
 class Program
 {
     static async Task Main()
+    {
+         var connectionString = "FootballStatsApiRedisCache.redis.cache.windows.net:6380,password=UYxwXs7y498EsBI82A8X2ZnDPau7okYOwAzCaC6CJqQ=,ssl=True,abortConnect=False";
+        // Replace with your Azure Redis connection string
+
+        var options = ConfigurationOptions.Parse(connectionString);
+        options.ConnectTimeout = 10000; // 10 seconds
+        options.SyncTimeout = 10000;
+        try
+        {
+            // Connect to Azure Redis Cache
+            ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(options);
+            IDatabase db = redis.GetDatabase();
+
+            // Set and Get example
+            string key = "testKey";
+            string value = "Hello, Azure Redis!";
+
+            db.StringSet(key, value);
+            string retrievedValue = db.StringGet(key);
+
+            Console.WriteLine($"Stored: {value}");
+            Console.WriteLine($"Retrieved: {retrievedValue}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        //await DownloadBrowser();
+    }
+
+
+    private static async Task DownloadBrowser()
     {
         await new BrowserFetcher().DownloadAsync();
         var browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
@@ -23,9 +57,8 @@ class Program
         await page.GoToAsync("https://fotmob.com/sv");
         await browser.CloseAsync();
     }
+
 }
-
-
 //// See https://aka.ms/new-console-template for more information
 //using HtmlAgilityPack;
 //using Scraping;

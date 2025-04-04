@@ -41,15 +41,19 @@ builder.Services.AddSwaggerGen();
 //    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 
 
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+//ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
     throw new Exception("Redis connection string is missing");
+
+//redisConnectionString = "localhost:6379";
 
 //var credential = new DefaultAzureCredential();
 //var accessToken = credential.GetToken(
 //    new Azure.Core.TokenRequestContext(new[] { "https://*.cache.windows.net/.default" })
 //);
+
+
 
 var redisOptions = new ConfigurationOptions
 {
@@ -57,16 +61,25 @@ var redisOptions = new ConfigurationOptions
     //User = "default", // Use "default" if Redis Enterprise is enabled
     Password = "UYxwXs7y498EsBI82A8X2ZnDPau7okYOwAzCaC6CJqQ=", // Use the Managed Identity token
     Ssl = true,
-    AbortOnConnectFail = false
+    AbortOnConnectFail = false,
+
 };
 
-//var db = redis.GetDatabase();
-//await db.StringSetAsync("test", "Hello from ACI!");
-// Register Redis ConnectionMultiplexer as a singleton
+//// Register Redis ConnectionMultiplexer as a singleton
+//builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+//{
+//    return ConnectionMultiplexer.Connect(redisOptions);
+//});
+//var redisOptions = new ConfigurationOptions
+//{
+//    EndPoints = { builder.Configuration["Redis:Endpoint"] },  // Use Docker's special hostname
+//    Ssl = false,  // Ensure SSL is disabled for local Redis
+//    AbortOnConnectFail = false
+//};
+
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    return ConnectionMultiplexer.Connect(redisOptions);
-});
+    ConnectionMultiplexer.Connect(redisConnectionString)
+);
 
 //var redis = ConnectionMultiplexer.Connect(redisOptions);
 //var db = redis.GetDatabase();

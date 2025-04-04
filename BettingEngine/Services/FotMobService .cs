@@ -142,14 +142,14 @@ namespace BettingEngine.Services
         private async Task<FotMobMatchStats> GetMatch(int teamId, Match m)
         {
             string cacheKey = $"fotmob-{m.Id}";
-            //var result  = await _cache.StringGetAsync(cacheKey);
-            //if(result.IsNull)
-            //{
-            //    _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
-            //    result = await GetData($"matchDetails?matchId={m.Id}");
-            //    await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
-            //}
-            var result = await GetData($"matchDetails?matchId={m.Id}");
+            var result = await _cache.StringGetAsync(cacheKey);
+            if (result.IsNull)
+            {
+                _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
+                result = await GetData($"matchDetails?matchId={m.Id}");
+                await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
+            }
+
             //var result = await GetData($"matchDetails?matchId=4506330");
             var match = JsonSerializer.Deserialize<Response>(result, _settings);
             if (match == null)
