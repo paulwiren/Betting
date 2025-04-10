@@ -5,6 +5,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Logging.AzureAppServices;
 using Serilog;
 using StackExchange.Redis;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 
@@ -19,6 +20,14 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+
+// Optional: manually load appsettings.* files
+//builder.Configuration
+//    .SetBasePath(Directory.GetCurrentDirectory())
+//    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+//    //.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+//    .AddJsonFile($"appsettings.Production.json", optional: true, reloadOnChange: true)
+//    .AddEnvironmentVariables();
 
 
 //// Add services to the container.
@@ -41,47 +50,33 @@ builder.Services.AddSwaggerGen();
 //    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]));
 
 
-//ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+////ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
-    throw new Exception("Redis connection string is missing");
-
-//redisConnectionString = "localhost:6379";
-
-//var credential = new DefaultAzureCredential();
-//var accessToken = credential.GetToken(
-//    new Azure.Core.TokenRequestContext(new[] { "https://*.cache.windows.net/.default" })
-//);
+//var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
+//    throw new Exception("Redis connection string is missing");
 
 
-
-var redisOptions = new ConfigurationOptions
-{
-    EndPoints = { "FootballStatsApiRedisCache.redis.cache.windows.net:6380" },
-    //User = "default", // Use "default" if Redis Enterprise is enabled
-    Password = "UYxwXs7y498EsBI82A8X2ZnDPau7okYOwAzCaC6CJqQ=", // Use the Managed Identity token
-    Ssl = true,
-    AbortOnConnectFail = false,
-
-};
-
-//// Register Redis ConnectionMultiplexer as a singleton
+////Register Redis ConnectionMultiplexer as a singleton
 //builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 //{
-//    return ConnectionMultiplexer.Connect(redisOptions);
+//    return ConnectionMultiplexer.Connect(redisConnectionString);
 //});
+
+// Localhost 
 //var redisOptions = new ConfigurationOptions
 //{
 //    EndPoints = { builder.Configuration["Redis:Endpoint"] },  // Use Docker's special hostname
-//    Ssl = false,  // Ensure SSL is disabled for local Redis
+//    Password = builder.Configuration["Redis:Password"],
+//    Ssl = builder.Environment.IsProduction(),  // Ensure SSL is disabled for local Redis
 //    AbortOnConnectFail = false
 //};
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-    ConnectionMultiplexer.Connect(redisConnectionString)
-);
+//builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+//    ConnectionMultiplexer.Connect(redisOptions)
+//);
+//-----------------------------------------------------------------
 
-//var redis = ConnectionMultiplexer.Connect(redisOptions);
+//var redis = ConnectionMultiplexer.Connect(redisConnectionString);
 //var db = redis.GetDatabase();
 //await db.StringSetAsync("test", "Hello from ACI!");
 
@@ -105,6 +100,12 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+
+//// Set default culture to Swedish
+//var swedishCulture = new CultureInfo("sv-SE");
+//CultureInfo.DefaultThreadCurrentCulture = swedishCulture;
+//CultureInfo.DefaultThreadCurrentUICulture = swedishCulture;
 
 builder.Services.AddHttpClient<IBettingService, BettingService>(client =>
 {
