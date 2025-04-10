@@ -52,15 +52,15 @@ builder.Services.AddSwaggerGen();
 
 ////ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
-//var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
-//    throw new Exception("Redis connection string is missing");
+var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
+    throw new Exception("Redis connection string is missing");
 
 
 ////Register Redis ConnectionMultiplexer as a singleton
-//builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-//{
-//    return ConnectionMultiplexer.Connect(redisConnectionString);
-//});
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
 
 // Localhost 
 //var redisOptions = new ConfigurationOptions
