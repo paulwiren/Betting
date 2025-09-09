@@ -2,6 +2,7 @@
 using LiveScoreBlazorApp.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using PuppeteerSharp.Input;
 using StackExchange.Redis;
 using System.Text.Json;
 using Match = BettingEngine.Models.Match;
@@ -110,55 +111,88 @@ namespace BettingEngine.Services
         }
 
 
+        //private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(Match currentMatch)
+        //{
+        //    string key = currentMatch.Date.ToString("yyyy-MM-dd");
+        //    var mathesOfTheDay = await _memoryCache.GetOrCreateAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key));
+        //    return mathesOfTheDay;
+        //}
         private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(Match currentMatch)
         {
-            string key = currentMatch.Date.ToString("yyyy-MM-dd");
-            var mathesOfTheDay = await _memoryCache.GetOrCreateAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key));           
+            string cacheKey = currentMatch.Date.ToString("yyyy-MM-dd");
+            var cachedValue = await _cache.StringGetAsync(cacheKey);
+            if (!cachedValue.IsNullOrEmpty)
+            {
+                var result = JsonSerializer.Deserialize<IEnumerable<FotMobLeague>>(cachedValue);
+                return result;
+            }
+
+            var mathesOfTheDay = await GetMatches(cacheKey);
+            string json = JsonSerializer.Serialize(mathesOfTheDay);
+            await _cache.StringSetAsync(cacheKey, json, TimeSpan.FromDays(120));
+
             return mathesOfTheDay;
         }
         private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(DateTime dateTime)
         {
-            string key = dateTime.ToString("yyyy-MM-dd");
-            var mathesOfTheDay = await _memoryCache.GetOrCreateAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key));
+            string cacheKey = dateTime.ToString("yyyy-MM-dd");
+
+            var cachedValue = await _cache.StringGetAsync(cacheKey);
+            if (!cachedValue.IsNullOrEmpty)
+            {
+                var result = JsonSerializer.Deserialize<IEnumerable<FotMobLeague>>(cachedValue);
+                return result;
+            }
+
+            var mathesOfTheDay = await GetMatches(cacheKey);
+            string json = JsonSerializer.Serialize(mathesOfTheDay);
+            await _cache.StringSetAsync(cacheKey, json, TimeSpan.FromDays(120));
             return mathesOfTheDay;
         }
 
-        //private async Task<FotMobMatchStats> GetMatch(int id)
+        //private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(DateTime dateTime)
         //{
-        //    var result = await GetData($"matchDetails?matchId={id}");
-        //    var match = JsonSerializer.Deserialize<Response>(result, _settings);
-        //    if (match == null)
-        //        return null;
-
-        //    //top_stats            
-        //    var stats = match.Content.Stats?.Periods.All.Stats.Where(s => s.Key.Equals("top_stats"));
-        //    if (stats != null)
-        //        return stats.First();
-
-        //    return null;
+        //    string key = dateTime.ToString("yyyy-MM-dd");
+        //    var mathesOfTheDay = await _memoryCache.GetOrCreateAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key));
+        //    return mathesOfTheDay;
         //}
+
+        private async Task<FotMobMatchStats> GetMatch(int id)
+        {
+            var result = await GetData($"matchDetails?matchId={id}");
+            var match = JsonSerializer.Deserialize<Response>(result, _settings);
+            if (match == null)
+                return null;
+
+            //top_stats            
+            var stats = match.Content.Stats?.Periods.All.Stats.Where(s => s.Key.Equals("top_stats"));
+            if (stats != null)
+                return stats.First();
+
+            return null;
+        }
 
         // TODO Refactoring and populate all data from match here
         private async Task<FotMobMatchStats> GetMatch(int teamId, Match m)
         {
             string cacheKey = $"fotmob-{m.Id}";
-            //var result  = await _cache.StringGetAsync(cacheKey);
-            //if(result.IsNull)
-            //{
-            //    _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
-            //    result = await GetData($"matchDetails?matchId={m.Id}");
-            //    await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
-            //}
-            var result = await GetData($"matchDetails?matchId={m.Id}");
+            var result = await _cache.StringGetAsync(cacheKey);
+            if (result.IsNull)
+            {
+                _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
+                result = await GetData($"matchDetails?matchId={m.Id}");
+                await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
+            }
+
             //var result = await GetData($"matchDetails?matchId=4506330");
             var match = JsonSerializer.Deserialize<Response>(result, _settings);
             if (match == null)
                 return null;
-           
+
             m.Score = await GetScore(teamId, match.Header.Teams[0], match.Header.Teams[1]);
-           
+
             //top_stats            
-           var stats = match.Content.Stats?.Periods.All?.Stats.Where(s => s.Key.Equals("top_stats"));
+            var stats = match.Content.Stats?.Periods.All?.Stats.Where(s => s.Key.Equals("top_stats"));
             if (stats != null)
                 return stats.First();
 

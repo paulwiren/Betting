@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 
 # Install Chromium dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y curl \
     libglib2.0-0 \
     libnss3 \
     libgconf-2-4 \
@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y \
 
 EXPOSE 80 8080 8081
 
+#ENV ASPNETCORE_ENVIRONMENT=Production
+#COPY appsettings.production.json /app/appsettings.production.json
+
 # Build and publish your app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -41,11 +44,14 @@ COPY . .
 WORKDIR "/src/FootballStatsApi"
 RUN dotnet publish "FootballStatsApi.csproj" -c Release -o /app/publish
 
+#ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Final stage: Run the app
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
+
 
 # Ensure appsettings.production.json is included
 #COPY appsettings.production.json /app/appsettings.production.json
