@@ -1,9 +1,6 @@
 ﻿using BettingEngine.Models;
 using LiveScoreBlazorApp.Models;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using PuppeteerSharp.Input;
-using StackExchange.Redis;
 using System.Text.Json;
 using Match = BettingEngine.Models.Match;
 
@@ -22,7 +19,7 @@ namespace BettingEngine.Services
     {
         public HttpClient _httpClient;
         //private readonly IHttpClientFactory _httpClientFactory;
-        private readonly PuppeteerService _puppeteerService;
+        //private readonly PuppeteerService _puppeteerService;
         private readonly LevenshteinAlgorithmService _levenshteinService;
         //public IMemoryCache _memoryCache;
         public ICacheService _cacheService;
@@ -30,9 +27,10 @@ namespace BettingEngine.Services
         public readonly TeamSynonyms _teamSynonyms;
         private readonly ILogger<FotMobService> _logger;
         //private readonly IDatabase _cache;
+        public readonly IAzureKeyVaultService _azureKeyVaultService;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, ICacheService cacheService, TeamSynonyms teamSynonyms, ILogger<FotMobService> logge, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService, ILogger<FotMobService> logger)
+        public FotMobService(HttpClient client, ICacheService cacheService, TeamSynonyms teamSynonyms, ILogger<FotMobService> logge , LevenshteinAlgorithmService levenshteinService, ILogger<FotMobService> logger, IAzureKeyVaultService azureKeyVaultService)
         {
             _httpClient = client;
             _cacheService = cacheService;
@@ -43,9 +41,9 @@ namespace BettingEngine.Services
             _teamSynonyms = teamSynonyms;
             _logger = logger;
             // _httpClientFactory = httpClientFactory;
-            _puppeteerService = puppeteerService;
             _levenshteinService = levenshteinService;
             _logger = logger;
+            _azureKeyVaultService = azureKeyVaultService;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
@@ -282,13 +280,14 @@ namespace BettingEngine.Services
             {
                 if (refreshHeader)
                 {
-                    var header = await GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                    /*var header = await GetHeader("https://www.fotmob.com/api/matches", "x-mas");
                     _logger.LogWarning($"Response header x-mas: {header}");
                     if (!string.IsNullOrEmpty(header))
                     {
                         _httpClient.DefaultRequestHeaders.Remove("X-Mas");
                         _httpClient.DefaultRequestHeaders.Add("X-Mas", header);
-                    }
+                    }*/
+
                 }
                 
                 return await _httpClient.GetStringAsync(url);
@@ -549,7 +548,9 @@ namespace BettingEngine.Services
 
         public async Task<string> GetHeader(string findUrl, string findHeader)
         {
-            return await _puppeteerService.GetSubRequestHeadersAsync("https://fotmob.com/sv");           
+            //return await _puppeteerService.GetSubRequestHeadersAsync("https://fotmob.com/sv");
+            //
+            return await _azureKeyVaultService.GetSecretAsync("Header-xmas");
         }
 
         //public async Task<string> GetHeader(string findUrl, string findHeader)

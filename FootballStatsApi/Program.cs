@@ -170,7 +170,7 @@ builder.Services.AddHttpClient<IAIService, AIService>(client =>
     client.Timeout = TimeSpan.FromMinutes(10);
 });
 
-builder.Services.AddSingleton<PuppeteerService>();
+//builder.Services.AddSingleton<PuppeteerService>();
 
 
 
