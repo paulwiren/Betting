@@ -24,17 +24,18 @@ namespace BettingEngine.Services
         //private readonly IHttpClientFactory _httpClientFactory;
         private readonly PuppeteerService _puppeteerService;
         private readonly LevenshteinAlgorithmService _levenshteinService;
-        public IMemoryCache _memoryCache;
+        //public IMemoryCache _memoryCache;
+        public ICacheService _cacheService;
         public JsonSerializerOptions _settings;
         public readonly TeamSynonyms _teamSynonyms;
         private readonly ILogger<FotMobService> _logger;
-        private readonly IDatabase _cache;
+        //private readonly IDatabase _cache;
 
         //https://api.spela.svenskaspel.se/multifetch?urls=/draw/1/topptipset/draws/2614
-        public FotMobService(HttpClient client, IMemoryCache memoryCache, TeamSynonyms teamSynonyms, ILogger<FotMobService> logge, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService, ILogger<FotMobService> logger, IDatabase cache)
+        public FotMobService(HttpClient client, ICacheService cacheService, TeamSynonyms teamSynonyms, ILogger<FotMobService> logge, PuppeteerService puppeteerService, LevenshteinAlgorithmService levenshteinService, ILogger<FotMobService> logger)
         {
             _httpClient = client;
-            _memoryCache = memoryCache;
+            _cacheService = cacheService;
             _settings = new JsonSerializerOptions
             {
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
@@ -45,7 +46,6 @@ namespace BettingEngine.Services
             _puppeteerService = puppeteerService;
             _levenshteinService = levenshteinService;
             _logger = logger;
-            _cache = cache;
         }
 
         private async Task<FotMobMatch> GetFotMobMatchData(IEnumerable<FotMobLeague> leagues, Team home, Team away)
@@ -114,14 +114,23 @@ namespace BettingEngine.Services
         //private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(Match currentMatch)
         //{
         //    string key = currentMatch.Date.ToString("yyyy-MM-dd");
-        //    var mathesOfTheDay = await _memoryCache.GetOrCreateAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key));
+        //    var mathesOfTheDay = await _cacheService.GetOrSetAsync<IEnumerable<FotMobLeague>>(key, async cacheEntry => await GetMatches(key), currentMatch.Date - DateTime.Now);
         //    return mathesOfTheDay;
         //}
+        //private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(Match currentMatch)
+        //{
+        //    string cacheKey = currentMatch.Date.ToString("yyyy-MM-dd");
+        //    var cachedValue = await _cache.StringGetAsync(cacheKey);
+        //    if (!cachedValue.IsNullOrEmpty)
+        //    {
+        //        var result = JsonSerializer.Deserialize<IEnumerable<FotMobLeague>>(cachedValue);
+        //        return result;
+        //    }
         private async Task<IEnumerable<FotMobLeague>> GetLatestMatchesData(Match currentMatch)
         {
             string cacheKey = currentMatch.Date.ToString("yyyy-MM-dd");
-            var cachedValue = await _cache.StringGetAsync(cacheKey);
-            if (!cachedValue.IsNullOrEmpty)
+            var cachedValue = await _cacheService.GetAsync<string>(cacheKey);
+            if (!string.IsNullOrEmpty(cachedValue))
             {
                 var result = JsonSerializer.Deserialize<IEnumerable<FotMobLeague>>(cachedValue);
                 return result;
@@ -129,7 +138,7 @@ namespace BettingEngine.Services
 
             var mathesOfTheDay = await GetMatches(cacheKey);
             string json = JsonSerializer.Serialize(mathesOfTheDay);
-            await _cache.StringSetAsync(cacheKey, json, TimeSpan.FromDays(120));
+            await _cacheService.SetAsync(cacheKey, json, TimeSpan.FromDays(120));
 
             return mathesOfTheDay;
         }
@@ -137,8 +146,8 @@ namespace BettingEngine.Services
         {
             string cacheKey = dateTime.ToString("yyyy-MM-dd");
 
-            var cachedValue = await _cache.StringGetAsync(cacheKey);
-            if (!cachedValue.IsNullOrEmpty)
+            var cachedValue = await _cacheService.GetAsync<string>(cacheKey);
+            if (!string.IsNullOrEmpty(cachedValue))
             {
                 var result = JsonSerializer.Deserialize<IEnumerable<FotMobLeague>>(cachedValue);
                 return result;
@@ -146,7 +155,7 @@ namespace BettingEngine.Services
 
             var mathesOfTheDay = await GetMatches(cacheKey);
             string json = JsonSerializer.Serialize(mathesOfTheDay);
-            await _cache.StringSetAsync(cacheKey, json, TimeSpan.FromDays(120));
+            await _cacheService.SetAsync(cacheKey, json, TimeSpan.FromDays(120));
             return mathesOfTheDay;
         }
 
@@ -176,12 +185,12 @@ namespace BettingEngine.Services
         private async Task<FotMobMatchStats> GetMatch(int teamId, Match m)
         {
             string cacheKey = $"fotmob-{m.Id}";
-            var result = await _cache.StringGetAsync(cacheKey);
-            if (result.IsNull)
+            var result = await _cacheService.GetAsync<string>(cacheKey);
+            if (string.IsNullOrEmpty(result))
             {
                 _logger.LogInformation($"From cache - Fotmob match: {m.Id}");
                 result = await GetData($"matchDetails?matchId={m.Id}");
-                await _cache.StringSetAsync(cacheKey, result, TimeSpan.FromDays(120));
+                await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromDays(120));
             }
 
             //var result = await GetData($"matchDetails?matchId=4506330");

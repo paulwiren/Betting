@@ -35,7 +35,8 @@ namespace BettingEngine.Services
                 {
                     //e.Request.Url
                     // https://www.fotmob.com/api/matches
-                    if (e.Request.Url.Contains("https://www.fotmob.com/api/matches"))
+                    //https://www.fotmob.com/api/data/matches
+                    if (e.Request.Url.Contains("https://www.fotmob.com/api/data/matches"))
                     {
                         var headers = e.Request.Headers.Where(h => h.Key.Equals("x-mas"));
                         if (headers != null)

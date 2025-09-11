@@ -1,5 +1,8 @@
 using Azure.Core;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using BettingEngine.Services;
+using FootballStatsApi.Toggles;
 using LiveScoreBlazorApp.Models;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Logging.AzureAppServices;
@@ -51,16 +54,42 @@ builder.Services.AddSwaggerGen();
 
 
 ////ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+///
 
-var redisConnectionString = builder.Configuration["Redis:ConnectionString"] ??
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IAzureKeyVaultService>(sp =>
+{
+    var secretClient = new SecretClient(
+        new Uri(builder.Configuration["AzureKeyVault"]),
+        new DefaultAzureCredential()
+    );
+    return new AzureKeyVaultService(secretClient);
+});
+builder.Services.AddSingleton<RedisCacheService>();
+builder.Services.AddSingleton<MemoryCacheService>();
+builder.Services.AddSingleton<NoCache>();
+builder.Services.AddScoped<ICacheService, FeatureToggledCache>();
+
+var redisConnectionString = builder.Configuration["Cache:RedisConnectionString"] ??
     throw new Exception("Redis connection string is missing");
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString(redisConnectionString);
+});
 
 ////Register Redis ConnectionMultiplexer as a singleton
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    return ConnectionMultiplexer.Connect(redisConnectionString);
-});
+//builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+//{
+//    return ConnectionMultiplexer.Connect(redisConnectionString);
+//});
+
+
+
+//builder.Services.Configure<CacheSettings>(builder.Configuration.GetSection("Cache"));
+
+// Exponera en (1) IAppCache – vår FeatureToggledCache hanterar allt
+builder.Services.AddSingleton<ICacheService, FeatureToggledCache>();
 
 // Localhost 
 //var redisOptions = new ConfigurationOptions
@@ -94,7 +123,7 @@ var appInsightsKey = builder.Configuration["ApplicationInsights:InstrumentationK
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()  // Logs to console (for debugging)
     .WriteTo.ApplicationInsights(
-        new TelemetryConfiguration { ConnectionString = appInsightsKey },
+        new Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration { ConnectionString = appInsightsKey },
         TelemetryConverter.Traces
     )
     .CreateLogger();

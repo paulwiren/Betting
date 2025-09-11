@@ -18,14 +18,14 @@ namespace FootballStatsApi.Controllers
         private readonly IBettingService _bettingService;
         private readonly IFotMobService _fotMobService;
         private readonly IAIService _aiService;
-        public IMemoryCache _memoryCache;
+        public ICacheService _cacheService;
 
-        public CouponController(ILogger<CouponController> logger, IBettingService bettingService, IFotMobService fotMobService, IMemoryCache memoryCache, ICouponService couponService, IAIService aiService)
+        public CouponController(ILogger<CouponController> logger, IBettingService bettingService, IFotMobService fotMobService, ICacheService cacheService, ICouponService couponService, IAIService aiService)
         {
             _logger = logger;
             _bettingService = bettingService;
             _fotMobService = fotMobService;
-            _memoryCache = memoryCache;
+            _cacheService = cacheService;
             _couponService = couponService;
             _aiService = aiService;
         }
@@ -53,11 +53,17 @@ namespace FootballStatsApi.Controllers
             try
             {
                 var coupons = new List<Coupon>();
-                //if (_memoryCache.TryGetValue(name, out coupons))
+                //if (_cacheService.TryGetValue(name, out coupons))
                 //{
                 //    await UpdatePrecentages(name, coupons.First());
                 //    return coupons;
                 //}
+                if (_cacheService.TryGetValue(name, out coupons))
+                {
+                    await UpdatePrecentages(name, coupons?.First());
+                    return coupons;
+                }
+                
                 //coupons = new List<Coupon>();
 
                 string json = await _bettingService.GetCouponAsync(name);
@@ -97,9 +103,14 @@ namespace FootballStatsApi.Controllers
                     skip += 8;
                     nrOfcoupons--;
                 }
-            
-                _memoryCache.Set<DateTime>($"{name}-gameStopDate", dates.First(), dates.First().AddHours(2));
-                _memoryCache.Set<string>($"{name}-json", json, dates.First().AddHours(2));
+
+                //_memoryCache.Set<DateTime>($"{name}-gameStopDate", dates.First(), dates.First().AddHours(2));
+                //_memoryCache.Set<string>($"{name}-json", json, dates.First().AddHours(2));
+
+                var first = dates.First();
+                var timespan = first.AddHours(2) - DateTime.Now;
+                await _cacheService.SetAsync<DateTime>($"{name}-gameStopDate", dates.First(), timespan);
+                await _cacheService.SetAsync<string>($"{name}-json", json, timespan);
 
                 //coupon.GameStop = dates.First();
                 //coupon.Percentages = percentages;
@@ -188,7 +199,7 @@ namespace FootballStatsApi.Controllers
 
             //var res = await _aiService.GetDataFromAI("Fulham-Man United");
             var coupons = new List<Coupon>();
-            if (!_memoryCache.TryGetValue(couponName, out coupons))
+            if (!_cacheService.TryGetValue(couponName, out coupons))
             {
                 return new List<Coupon>();
             }
@@ -220,15 +231,13 @@ namespace FootballStatsApi.Controllers
 
             var coupons = new List<Coupon>();
             Coupon coupon = new Coupon();
-            if (!_memoryCache.TryGetValue(name, out coupons))
+            if (!_cacheService.TryGetValue(name, out coupons))
             {
-
                 coupons = new List<Coupon>();
-
             }
             if (!coupons.Any())
             {
-                var json = _memoryCache.Get<string>($"{name}-json");
+                var json = await _cacheService.GetAsync<string>($"{name}-json");
                 var percentages = await _bettingService.GetPercentage(json);
                 var dates = await GetCloseDates(json);
                 var gameStopDates = dates.ToList();
@@ -247,7 +256,7 @@ namespace FootballStatsApi.Controllers
             gh.Number = number;
             coupon.Games.Add(gh);
 
-            _memoryCache.Set<List<Coupon>>(name, coupons, stopDate);
+            await _cacheService.SetAsync<List<Coupon>>(name, coupons, stopDate - DateTime.Now);
             return gh;
         }
 
@@ -257,7 +266,7 @@ namespace FootballStatsApi.Controllers
             {
 
                 var coupons = new List<Coupon>();
-                if (_memoryCache.TryGetValue(name, out coupons))
+                if (_cacheService.TryGetValue(name, out coupons))
                 {
                     await UpdatePrecentages(name, coupons.First());
                     return coupons;
@@ -281,7 +290,6 @@ namespace FootballStatsApi.Controllers
                 }
                 while (nrOfcoupons > 0)
                 {
-
                     var coupon = new Coupon();
                     coupon.GameStop = gameStopDates[couponIndex++];
                     foreach (var p in percentages.Skip(skip).Take(take))
@@ -309,7 +317,8 @@ namespace FootballStatsApi.Controllers
                     skip += 8;
                     nrOfcoupons--;
                 }
-                _memoryCache.Set<List<Coupon>>(name, coupons, coupons.First().GameStop.AddHours(2));
+                var timeSpan = coupons.First().GameStop.AddHours(2) - DateTime.Now;
+                await _cacheService.SetAsync<List<Coupon>>(name, coupons, timeSpan);
                 return coupons;
             }
             catch (Exception ex)
@@ -353,10 +362,4 @@ namespace FootballStatsApi.Controllers
             }
         }
     }
-
-
-   
-
-    
-
 }
