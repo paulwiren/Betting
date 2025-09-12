@@ -64,7 +64,7 @@ namespace FootballStatsApi.Controllers
                     return coupons;
                 }
                 
-                //coupons = new List<Coupon>();
+                coupons = new List<Coupon>();
 
                 string json = await _bettingService.GetCouponAsync(name);
                 var matches = await _bettingService.GetMatches(json);
