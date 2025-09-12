@@ -1,15 +1,10 @@
-using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using BettingEngine.Services;
 using FootballStatsApi.Toggles;
 using LiveScoreBlazorApp.Models;
-using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.Extensions.Logging.AzureAppServices;
 using Serilog;
 using StackExchange.Redis;
-using System.Globalization;
-using System.Net;
 using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -110,11 +105,11 @@ builder.Services.AddSingleton<ICacheService, FeatureToggledCache>();
 //await db.StringSetAsync("test", "Hello from ACI!");
 
 // Register IDatabase as a scoped service
-builder.Services.AddScoped<IDatabase>(sp =>
-{
-    var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
-    return multiplexer.GetDatabase();
-});
+//builder.Services.AddScoped<IDatabase>(sp =>
+//{
+//    var multiplexer = sp.GetRequiredService<IConnectionMultiplexer>();
+//    return multiplexer.GetDatabase();
+//});
 
 // Read Application Insights instrumentation key from environment variables
 var appInsightsKey = builder.Configuration["ApplicationInsights:InstrumentationKey"];
