@@ -12,7 +12,7 @@ namespace BettingEngine.Services
         Task<GameHistory> GetStats(GameHistory m);
         Task<GameHistory> GetStats(string match, DateTime date);
 
-        Task<string> GetHeader(string findUrl, string findHeader);
+        Task<string> GetHeader();
     }
 
     public class FotMobService : IFotMobService
@@ -280,13 +280,14 @@ namespace BettingEngine.Services
             {
                 if (refreshHeader)
                 {
-                    /*var header = await GetHeader("https://www.fotmob.com/api/matches", "x-mas");
+                    var header = await GetHeader();
+
                     _logger.LogWarning($"Response header x-mas: {header}");
                     if (!string.IsNullOrEmpty(header))
                     {
                         _httpClient.DefaultRequestHeaders.Remove("X-Mas");
                         _httpClient.DefaultRequestHeaders.Add("X-Mas", header);
-                    }*/
+                    }
 
                 }
                 
@@ -546,7 +547,7 @@ namespace BettingEngine.Services
             return m;
         }
 
-        public async Task<string> GetHeader(string findUrl, string findHeader)
+        public async Task<string> GetHeader()
         {
             //return await _puppeteerService.GetSubRequestHeadersAsync("https://fotmob.com/sv");
             //
