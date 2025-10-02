@@ -14,20 +14,33 @@ namespace BettingEngine.Services
         {
             try
             {
-                var browseFetcher = await new BrowserFetcher().DownloadAsync();
-               
-                var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                var chromePath = Environment.GetEnvironmentVariable("PUPPETEER_EXECUTABLE_PATH")
+                 ?? "/usr/bin/chromium"; // eller "/usr/bin/chromium-browser"
+                                         //var browseFetcher = await new BrowserFetcher().DownloadAsync();
+                var referrer = "https://updatekeyvaultfunctionapp-7brabfqdpd5h4gr.swedencentral-01.azurewebsites.net";
+                                
+                var launchOptions = new LaunchOptions
                 {
-                    //ExecutablePath = "/app/Chrome/Linux-132.0.6834.88/chrome-linux64/chrome",
-                    //ExecutablePath = @"C:\Users\Paul\Source\Repos\LiveScoreBlazorApp\FootballStatsApi\bin\Debug\net8.0\Chrome\Win64-132.0.6834.83\chrome-win64\chrome.exe",
-                    //ExecutablePath = @"C:/Users/Paul/Source/Repos/LiveScoreBlazorApp/FootballStatsApi/bin/Debug/net8.0/Chrome/Win64-132.0.6834.83/chrome-win64/chrome.exe",
-                    //ExecutablePath = "/app/bin/Debug/net8.0/Chrome/Linux-132.0.6834.83/chrome-linux64/chrome",
-                    //ExecutablePath = @"/app/Chrome/Win64-134.0.6998.88/chrome-win64/chrome.exe",
                     Headless = true,
-                    Args = new[] { "--no-sandbox", "--disable-setuid-sandbox" }                   
-                });
-               //ar ExecutablePath = browseFetcher.GetExecutablePath(1320683488),
+                    ExecutablePath = chromePath,
+                    Args = new[]
+                    {
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                        "--single-process",
+                        "--no-zygote"
+                    }
+                };
+
+                var browser = await Puppeteer.LaunchAsync(launchOptions);
                 var page = await browser.NewPageAsync();
+
+                // Set only the Referer header (no policy)
+               /* await page.SetExtraHttpHeadersAsync(new Dictionary<string, string> {
+                                                { "Referer", referrer } // correct header name is "Referer"
+                                            });*/
 
                 var headersList = new List<string>();
                 string header = string.Empty;
@@ -51,7 +64,13 @@ namespace BettingEngine.Services
                     //}
                 };
 
-                await page.GoToAsync(url);
+               //await page.GoToAsync(url);
+               await page.GoToAsync(url, new NavigationOptions
+                {
+                    Referer = referrer,   // valid
+                    //Timeout = 30000,                    // valid
+                   // WaitUntil = new[] { WaitUntilNavigation.Load } // valid
+                });
                 await browser.CloseAsync();
 
                 return header;
